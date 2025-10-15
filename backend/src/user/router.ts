@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { testProtectedRoute  } from "./controllers/user";
+import { testProtectedRoute  } from "./controller/user";
 import { validateInput } from "../index/middleware/validation";
 
 const router = Router()

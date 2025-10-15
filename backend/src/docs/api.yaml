@@ -1,0 +1,106 @@
+components:
+  schemas:
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "a3b7b5b7-a56b-4a92-aefe-70ceabd516da"
+        username:
+          type: string
+          example: "user3"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-10-15T17:32:32.575Z"
+        password:
+          type: string
+          example: "$2b$05$kD0ibZSCwGbSvN0UfyKmPeaBjvAXj4DqbN1EQ.p2MnCjnhqUECyO2"
+          description: "Hashed password"
+    TokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: "JTW Token"
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImEzYjdiNWI3LWE1NmItNGE5Mi1hZWZlLTcwY2VhYmQ1MTZkYSIsInVzZXJuYW1lIjoidXNlcjQiLCJpYXQiOjE3NjA1NDk1OTcsImV4cCI6MTc2MDU1MzE5N30.jwVI2oebVouJHAjdCY0bcgQmlRkjwIi2BnT5pDkNLEE"
+
+paths:
+  /sign-up:
+    post:
+      summary: Register new user
+      tags: [Guest]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: |
+            Bad request - either:
+            - Username already taken
+            - Username and password are required
+
+  /sign-in:
+    post:
+      summary: Login user
+      tags: [Guest]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: JWT token returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: Username and password are required
+        "401":
+          description: Wrong credentials
+
+  /api/protected:
+    get:
+      summary: Test protected route
+      security:
+        - bearerAuth: []
+      tags: [User]
+      responses:
+        "200":
+          description: Authorized user info
+        "400":
+          description: |
+            Bad request - either:
+            - missing auth header
+            - no token
+            - token expired
+            - invalid token
