@@ -10,11 +10,14 @@ export const signUp: RequestHandler<{}, UserResponse, UserRequest> = async (req:
     try {
         const { username, password } = req.body;
         if (!username || !password) {
-            throw new AppError(400, "Username and password are required")
+            throw new AppError(400, "Username and password are required!")
         }
         const userExists: UserResponse | null = await findUser(username)
         if (userExists) {
-            throw new AppError(400, "username already taken")
+            throw new AppError(400, "Username already taken!")
+        }
+        if (password.length < 5) {
+            throw new AppError(400, "Password must be at least 6 characters long!")
         }
         const user: UserResponse = await prisma.user.create({
             data: {
@@ -32,18 +35,18 @@ export const signIn: RequestHandler<{}, TokenResponse, UserRequest> = async (req
     try {
         const { username, password } = req.body;
         if (!username || !password) {
-            throw new AppError(400, "Username and password are required")
+            throw new AppError(400, "Username and password are required!")
         }
-        const user: UserResponse |null = await findUser(username)
+        const user: UserResponse | null = await findUser(username)
         if (!user) {
-            throw new AppError(401, "wrong credentials")
+            throw new AppError(401, "Wrong credentials!")
         }
         const isValid: boolean = await comparePasswords(password, user.password) //musime pouzit await lebo bcrypt vracia promise
         if (!isValid) {
-            throw new AppError(401, "wrong credentials")
+            throw new AppError(401, "Wrong credentials!")
         }
         const token: string = createJWT(user)
-        const response: TokenResponse = {token: token}
+        const response: TokenResponse = { token: token }
         res.status(200).json(response)
     } catch (error) {
         next(error)

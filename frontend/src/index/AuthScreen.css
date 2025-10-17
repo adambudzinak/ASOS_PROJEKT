@@ -1,0 +1,13 @@
+/* Gradient background */
+.auth-background {
+  background: linear-gradient(135deg, #6a11cb, #2575fc, #974476, #7873f5);
+  background-size: 300% 300%;
+  animation: gradientAnimation 10s ease infinite;
+}
+
+/* Animate gradient */
+@keyframes gradientAnimation {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}

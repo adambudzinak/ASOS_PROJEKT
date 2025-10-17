@@ -1,4 +1,4 @@
-### SPUSTENIE
+## SPUSTENIE
 Pred spustenim sa treba uistit, ze mas node (v22.20.0), npm, postgresql <br>
 pokial programujete vo vs code, odporucam tiez plugin: Prisma
 

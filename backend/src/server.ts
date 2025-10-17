@@ -5,9 +5,10 @@ import { protectRoute } from './index/middleware/protect-route'
 import { signUp, signIn } from './index/controller/guest'
 import { errorHandler } from './index/middleware/error-handling'
 import { validateInput, signUpValidations } from "./index/middleware/validation";
+const cors = require("cors");
 
 const app = express()
-
+app.use(cors({ origin: "http://localhost:5173" }))
 /*
 app.use() is a method used to mount middleware or routers in an Express application
 Nesprávne poradie app.use() môže spôsobiť, že middleware nebude fungovať správne alebo sa vôbec nespustí.

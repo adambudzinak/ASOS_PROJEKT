@@ -31,16 +31,13 @@ export const protectRoute: RequestHandler = (req: AuthenticatedRequest, res: Res
         if (!process.env.JWT_SECRET) {
             return next(new AppError(500, "JWT secret is not defined"))
         }
-        try {
-            //attachneme do requestu user data, aby k nim mohli pristupit dalsie funkcie
-            //vdaka tomu budeme v kazdej funkcii, kt pouziva protect-route middleware, vediet, aky user robi request
-            //netreba zabudat, ze v tomto user objekte mame len id a username, lebo len to ukladame vramci jwt
-            const user: JwtResponse = jwt.verify(token, process.env.JWT_SECRET) as JwtResponse
-            req.user = user
-            next()
-        } catch (err) {
-            return next(new AppError(401, "Token expired"))
-        }
+
+        //attachneme do requestu user data, aby k nim mohli pristupit dalsie funkcie
+        //vdaka tomu budeme v kazdej funkcii, kt pouziva protect-route middleware, vediet, aky user robi request
+        //netreba zabudat, ze v tomto user objekte mame len id a username, lebo len to ukladame vramci jwt
+        const user: JwtResponse = jwt.verify(token, process.env.JWT_SECRET) as JwtResponse
+        req.user = user
+        next()
     } catch (err) {
         return next(new AppError(401, "invalid token"))
     }
