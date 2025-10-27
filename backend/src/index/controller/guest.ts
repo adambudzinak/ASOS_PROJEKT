@@ -8,9 +8,12 @@ import { TokenResponse } from "../payload/token-res";
 
 export const signUp: RequestHandler<{}, UserResponse, UserRequest> = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { username, password } = req.body;
+        const { username, password, fname, lname } = req.body;
         if (!username || !password) {
             throw new AppError(400, "Username and password are required!")
+        }
+        if (!fname || !lname) {
+            throw new AppError(400, "You must provide your name!")
         }
         const userExists: UserResponse | null = await findUser(username)
         if (userExists) {
@@ -22,7 +25,9 @@ export const signUp: RequestHandler<{}, UserResponse, UserRequest> = async (req:
         const user: UserResponse = await prisma.user.create({
             data: {
                 username: username,
-                password: await hashPassword(password) //musime pouzit await lebo bcrypt vracia promise
+                password: await hashPassword(password), //musime pouzit await lebo bcrypt vracia promise
+                fname: fname,
+                lname: lname
             }
         })
         res.status(201).json(user)

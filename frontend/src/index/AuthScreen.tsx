@@ -11,6 +11,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
     const [isLogin, setIsLogin] = useState(true);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [fname, setFname] = useState("");
+    const [lname, setLname] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [modalOpen, setModalOpen] = useState(false);
     const [modalText, setModalText] = useState("");
@@ -28,20 +30,35 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
             setModalContent("Password must be at least 6 characters long.", "ERROR", "GOT IT!")
             setModalOpen(true);
             return;
+        } else if (!isLogin && (fname.length < 3 || fname.length > 20)) {
+            setModalContent("First name must be at least 3 characters long, but no more than 20.", "ERROR", "GOT IT!")
+            setModalOpen(true);
+            return;
+        } else if (!isLogin && (lname.length < 3 || lname.length > 20)) {
+            setModalContent("Last name must be at least 3 characters long, but no more than 20.", "ERROR", "GOT IT!")
+            setModalOpen(true);
+            return;
         }
 
-        const data = {
-            username,
-            password
-        };
+        let data;
 
         try {
             if (isLogin) {
+                data = {
+                    username,
+                    password
+                };
                 const response = await axios.post("/sign-in", data);
                 console.log("Server response:", response.data);
                 const token = response.data.token;
                 onLogin(token);
             } else {
+                data = {
+                    username,
+                    password,
+                    fname,
+                    lname
+                }
                 const response = await axios.post("/sign-up", data);
                 console.log("Server response:", response.data);
 
@@ -50,8 +67,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                 toggleAuthMode();
             }
         } catch (error: any) {
+            console.log(error)
             setModalContent(
-                error.response?.data?.message || "Something went wrong :(",
+                error.response?.data?.message || error.response?.data?.errors?.map((err: any) => err.msg).join(' ') || "Something went wrong :(",
                 "ERROR",
                 "GOT IT!"
             );
@@ -68,6 +86,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
     const toggleAuthMode = () => {
         setIsLogin(!isLogin);
         setUsername("");
+        setFname("");
+        setLname("");
         setPassword("");
         setConfirmPassword("");
     };
@@ -93,6 +113,32 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
                             required
                         />
                     </div>
+                    {!isLogin && (
+                        <>
+                            <div className="mb-3">
+                                <label className="form-label">First Name</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="John"
+                                    value={fname}
+                                    onChange={(e) => setFname(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-3">
+                                <label className="form-label">Last Name</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Doe"
+                                    value={lname}
+                                    onChange={(e) => setLname(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        </>
+                    )}
                     <div className="mb-3">
                         <label className="form-label">Password</label>
                         <input

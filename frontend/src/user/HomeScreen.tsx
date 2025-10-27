@@ -35,7 +35,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ token, onLogout }) => {
             case "Feed":
                 return <Feed message={message} />;
             case "Profile":
-                return <Profile />;
+                return <Profile token={token}/>;
             case "People":
                 return <People />;
             case "Logout":
