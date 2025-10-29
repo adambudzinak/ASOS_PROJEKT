@@ -1,5 +1,5 @@
 import React from "react";
-import "./HomeScreen.css"
+import "../home-screen/HomeScreen.css"
 
 const People: React.FC = () => {
   return (

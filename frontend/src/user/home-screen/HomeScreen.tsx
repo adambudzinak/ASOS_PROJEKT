@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import axios from "../auth/CrossOrigin";
-import Navigation from "./Navigation";
+import axios from "../../auth/CrossOrigin";
+import Navigation from "../Navigation";
 import "./HomeScreen.css"
-import Feed from "./Feed";
-import People from "./People";
-import Profile from "./Profile";
+import Feed from "../feed/Feed";
+import People from "../people/People";
+import Profile from "../profile/Profile";
 
 interface HomeScreenProps {
     token: string;
@@ -47,7 +47,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ token, onLogout }) => {
     };
 
     return (
-        <div className="home-background d-flex vh-100 flex-column align-items-center">
+        <div className="home-background d-flex flex-column align-items-center">
             <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
             {renderContent()}
         </div>

@@ -16,3 +16,62 @@
 .z-50 {
     z-index: 50;
 }
+
+.imagecrop-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1040;
+}
+
+.imagecrop-modal {
+    top: 50%;
+    left: 50%;
+    z-index: 20000;
+    transform: translate(-50%, -50%);
+    height: 80vh;
+    max-height: 80vh;
+    width: 50vw !important;
+    max-width: 50vw !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.imageview-modal {
+    top: 50%;
+    left: 50%;
+    z-index: 20000;
+    transform: translate(-50%, -50%);
+    height: 60vh;
+    max-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-content-scroll {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+@media (max-width: 768px) {
+    .imagecrop-modal {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        height: 90vh !important;
+        max-height: 90vh !important;
+    }
+    .imageview-modal {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        height: 60vh !important;
+        max-height: 60vh !important;
+    }
+}

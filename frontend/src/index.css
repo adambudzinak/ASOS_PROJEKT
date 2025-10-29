@@ -33,20 +33,20 @@ body,
 
 /* Inputs */
 .form-control {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: none !important;
+  color: white !important;
 }
 
 .form-control::placeholder {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.7) !important;
 }
 
 .form-control:focus {
-  background: rgba(255, 255, 255, 0.3);
-  outline: none;
-  box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
-  color: white;
+  background: rgba(255, 255, 255, 0.3) !important;
+  outline: none !important;
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.8) !important;
+  color: white !important;
 }
 
 /* Links */

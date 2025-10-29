@@ -20,4 +20,14 @@ model User {
   fname String
   lname String
   password String
+  avatar String?
+  photos Photo[]
+}
+
+model Photo {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  filename  String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -5,6 +5,7 @@ import { protectRoute } from './index/middleware/protect-route'
 import { signUp, signIn } from './index/controller/guest'
 import { errorHandler } from './index/middleware/error-handling'
 import { validateInput, signUpValidations } from "./index/middleware/validation";
+import path from "path";
 const cors = require("cors");
 
 const app = express()
@@ -18,7 +19,8 @@ Nesprávne poradie app.use() môže spôsobiť, že middleware nebude fungovať 
 app.use(logger) //Logger middleware sa spustí pred všetkým ostatným, aby zaznamenával každú požiadavku, ktorá príde na server.
 
 //dovolime klientom posielat jsony na nas server
-app.use(express.json()) //Ak by tieto middleware prišli po route handleroch, Express by nevedel rozpoznať JSON v requeste
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 //umoznime klientom vramci URL poslat parametre (napr localhost:8080/api/example?param1=asd)
 app.use(express.urlencoded({extended: true}))
@@ -29,6 +31,9 @@ app.use('/api', protectRoute, userRouter) //Router sa vykoná iba, ak protectRou
 //tieto routes nemaju protectRoute middleware, lebo chceme, aby sa kazdy dokazal zaregistrovat a prihlasit
 app.post('/sign-up', signUpValidations, validateInput, signUp)
 app.post('/sign-in', signIn)
+
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use(express.json({ limit: "10mb" }));
 
 //endpoint na vyhodenie synchronnej chyby -> sposobi zavolanie errorHandler-u
 //synchronna chyba je automaticky posunuta do error handleru Expressom

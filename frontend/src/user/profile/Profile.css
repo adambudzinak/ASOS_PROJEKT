@@ -1,0 +1,162 @@
+.profile-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.profile-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+}
+
+.profile-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    max-width: 33%;
+    position: relative;
+}
+
+.profile-pic {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #fff;
+}
+
+.profile-name {
+    margin-top: 15px;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.profile-right {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    flex: 2;
+}
+
+.stats-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stats-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.stats-label {
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+
+.avatar-edit-btn {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 50%;
+    padding: 0.4rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.avatar-edit-btn:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+.avatar-edit-btn svg {
+    color: white;
+    width: 20px;
+    height: 20px;
+}
+
+.profile-gallery {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 20px;
+    width: 100%;
+}
+
+.gallery-item {
+    width: 100%;
+    padding-top: 100%;
+    position: relative;
+    overflow: hidden;
+    border-radius: 10px;
+    background-color: #f0f0f0;
+}
+
+.gallery-item img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out;
+}
+
+.profile-gallery .gallery-item img:hover {
+    transform: scale(1.05);
+}
+
+.gallery-item.add-photo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e0e0e052;
+    cursor: pointer;
+    border-radius: 10px;
+    padding-top: 100%; /* 1:1 */
+    position: relative;
+}
+
+.gallery-item.add-photo span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+@media (max-width: 768px) {
+    .profile-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .profile-left {
+        max-width: 100%;
+        flex: none;
+        border-right: none;
+        padding-right: 0;
+        margin-bottom: 20px;
+    }
+
+    .profile-right {
+        flex-direction: row;
+        justify-content: space-around;
+        padding-left: 0;
+        width: 100%;
+    }
+
+     .profile-gallery {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

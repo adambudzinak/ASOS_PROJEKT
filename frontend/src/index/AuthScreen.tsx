@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import "./AuthScreen.css";
-import Modal from "../common/Modal";
+import "../index.css"
+import Modal from "../common/ResponseModal.tsx";
 import axios from "../auth/CrossOrigin.tsx";
 
 interface AuthScreenProps {

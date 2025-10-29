@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import AuthScreen from "./index/AuthScreen";
-import HomeScreen from "./user/HomeScreen";
+import HomeScreen from "./user/home-screen/HomeScreen";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./index.css";
 

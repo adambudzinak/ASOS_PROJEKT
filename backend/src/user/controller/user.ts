@@ -9,10 +9,62 @@ export async function testProtectedRoute(req: AuthenticatedRequest, res: Respons
 }
 
 export async function getUserData(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    const user: UserResponse | null = await prisma.user.findUnique({
-        where: {
-            username: req.user?.username
+    try {
+        const user = await prisma.user.findUnique({
+            where: { username: req.user?.username },
+            include: { photos: { orderBy: { createdAt: "desc" } } }, 
+        });
+
+        if (!user) throw new AppError(404, "User not found");
+
+        const baseUrl = `${req.protocol}://${req.get("host")}`;
+        const photosWithUrls = user.photos.map(photo => ({
+            ...photo,
+            url: `${baseUrl}/uploads/${photo.filename}`,
+        }));
+
+        res.status(200).json({ ...user, photos: photosWithUrls });
+    } catch (error) {
+        next(error)
+    }
+}
+
+export async function updateAvatar(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+        const { avatar } = req.body;
+
+        if (!avatar || typeof avatar !== "string") {
+            throw new AppError(400, "Missing avatar data")
         }
-    })
-    res.status(200).json({ user })
+
+        const updatedUser = await prisma.user.update({
+            where: { username: req.user?.username },
+            data: { avatar },
+        });
+
+        res.status(200).json({ avatar: updatedUser.avatar });
+    } catch (error) {
+        next(error)
+    }
+}
+
+export async function uploadPhoto(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+        if (!req.file) {
+            throw new AppError(400, "No file uploaded");
+        }
+
+        const filename = req.file.filename;
+
+        const newPhoto = await prisma.photo.create({
+            data: {
+                filename,
+                userId: req.user!.id,
+            },
+        });
+
+        res.status(201).json({ photo: newPhoto });
+    } catch (error) {
+        next(error)
+    }
 }

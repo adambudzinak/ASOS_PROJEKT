@@ -1,4 +1,4 @@
 export interface JwtResponse {
-  id: number
+  id: string
   username: string
 }
