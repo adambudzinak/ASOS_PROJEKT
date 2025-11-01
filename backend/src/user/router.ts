@@ -1,8 +1,12 @@
 import { Router } from "express";
-import { testProtectedRoute  } from "./controller/user";
-import { getUserData } from "./controller/user";
-import { updateAvatar } from "./controller/user";
-import { uploadPhoto } from "./controller/user";
+import {
+    testProtectedRoute,
+    getUserData,
+    updateAvatar,
+    uploadPhoto,
+    searchUsers,
+    getUserByUsername
+} from "./controller/user";
 import { storage } from "./middleware/multer-config";
 import multer from "multer";
 
@@ -11,7 +15,9 @@ const upload = multer({ storage });
 
 router.get('/protected', testProtectedRoute)
 router.get('/get-user', getUserData)
+router.get("/search-users", searchUsers);
+router.get("/user/:username", getUserByUsername);
 router.post("/update-avatar", updateAvatar);
-router.post("/upload-photo", upload.single("photo"), uploadPhoto); 
+router.post("/upload-photo", upload.single("photo"), uploadPhoto);
 
 export default router

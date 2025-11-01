@@ -1,7 +1,7 @@
 import { AppError } from "../../index/types/app-error";
 import { UserResponse } from "../../index/payload/user-res";
 import prisma from "../../database";
-import { Request, Response, NextFunction } from "express"
+import { Request, Response, NextFunction, RequestHandler } from "express"
 import { AuthenticatedRequest } from "../../index/payload/auth-req";
 
 export async function testProtectedRoute(req: AuthenticatedRequest, res: Response, next: NextFunction) {
@@ -12,7 +12,7 @@ export async function getUserData(req: AuthenticatedRequest, res: Response, next
     try {
         const user = await prisma.user.findUnique({
             where: { username: req.user?.username },
-            include: { photos: { orderBy: { createdAt: "desc" } } }, 
+            include: { photos: { orderBy: { createdAt: "desc" } } },
         });
 
         if (!user) throw new AppError(404, "User not found");
@@ -66,5 +66,70 @@ export async function uploadPhoto(req: AuthenticatedRequest, res: Response, next
         res.status(201).json({ photo: newPhoto });
     } catch (error) {
         next(error)
+    }
+}
+
+export const searchUsers: RequestHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const query = (req.query.query as string)?.trim();
+
+        if (!query || query.length < 1) {
+            res.status(200).json({ users: [] });
+            return;
+        }
+
+        const users = await prisma.user.findMany({
+            where: {
+                AND: [
+                    {
+                        OR: [
+                            { username: { contains: query, mode: "insensitive" } },
+                            { fname: { contains: query, mode: "insensitive" } },
+                            { lname: { contains: query, mode: "insensitive" } },
+                        ],
+                    },
+                    {
+                        NOT: {
+                            id: req.user?.id,
+                        },
+                    },
+                ],
+            },
+            select: {
+                id: true,
+                username: true,
+                fname: true,
+                lname: true,
+                avatar: true,
+            },
+            take: 20,
+        });
+
+        res.status(200).json({ users });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getUserByUsername(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+        const username = req.params.username;
+
+        const user = await prisma.user.findUnique({
+            where: { username },
+            include: { photos: { orderBy: { createdAt: "desc" } } },
+        });
+
+        if (!user) throw new AppError(404, "User not found");
+
+        const baseUrl = `${req.protocol}://${req.get("host")}`;
+        const photosWithUrls = user.photos.map(photo => ({
+            ...photo,
+            url: `${baseUrl}/uploads/${photo.filename}`,
+        }));
+
+        res.status(200).json({ ...user, photos: photosWithUrls });
+    } catch (error) {
+        next(error);
     }
 }
