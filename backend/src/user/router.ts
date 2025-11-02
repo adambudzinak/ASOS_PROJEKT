@@ -5,7 +5,8 @@ import {
     updateAvatar,
     uploadPhoto,
     searchUsers,
-    getUserByUsername
+    getUserByUsername,
+    deletePhoto
 } from "./controller/user";
 import { storage } from "./middleware/multer-config";
 import multer from "multer";
@@ -19,5 +20,6 @@ router.get("/search-users", searchUsers);
 router.get("/user/:username", getUserByUsername);
 router.post("/update-avatar", updateAvatar);
 router.post("/upload-photo", upload.single("photo"), uploadPhoto);
+router.delete("/photo/:id", deletePhoto);
 
 export default router

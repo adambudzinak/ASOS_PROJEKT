@@ -3,6 +3,8 @@ import { UserResponse } from "../../index/payload/user-res";
 import prisma from "../../database";
 import { Request, Response, NextFunction, RequestHandler } from "express"
 import { AuthenticatedRequest } from "../../index/payload/auth-req";
+import fs from "fs";
+import path from "path";
 
 export async function testProtectedRoute(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     res.status(200).json({ message: "hello from protected route", id: req.user?.id, username: req.user?.username })
@@ -129,6 +131,30 @@ export async function getUserByUsername(req: AuthenticatedRequest, res: Response
         }));
 
         res.status(200).json({ ...user, photos: photosWithUrls });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function deletePhoto(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+        const photoId = req.params.id;
+        const userId = req.user!.id;
+
+        const photo = await prisma.photo.findUnique({ where: { id: photoId } });
+        if (!photo) throw new AppError(404, "Photo not found");
+
+        if (photo.userId !== userId) throw new AppError(403, "Not authorized to delete this photo");
+
+        const filePath = path.join(process.cwd(), "uploads", photo.filename);
+
+        await prisma.photo.delete({ where: { id: photoId } });
+
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        res.status(200).json({ message: "Photo deleted successfully" });
     } catch (error) {
         next(error);
     }

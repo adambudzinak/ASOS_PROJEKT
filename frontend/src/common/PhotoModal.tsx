@@ -7,7 +7,7 @@ import "./Modal.css";
 interface PhotoModalProps {
     isOpen: boolean;
     onClose: () => void;
-    photos: string[];
+    photos: any[];
     initialIndex: number;
 }
 
@@ -116,7 +116,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({ isOpen, onClose, photos, initia
                             <ChevronRight color="white" size={36} />
                         </button>
                         <img
-                            src={photos[currentIndex]}
+                            src={photos[currentIndex].url}
                             alt={`Photo ${currentIndex + 1}`}
                             style={{
                                 objectFit: "contain",

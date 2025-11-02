@@ -7,6 +7,8 @@ import "./Profile.css"
 import PencilIcon from "../../common/PencilIcon";
 import { createPortal } from "react-dom";
 import ImageCropModal from "../../common/UploadModal";
+import { X } from "lucide-react";
+import ConfirmModal from "../../common/ConfirmModal";
 
 interface ProfileProps {
     token: string;
@@ -23,11 +25,14 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
     const [avatarUrl, setAvatarUrl] = useState("/stock-profile-pic.png");
     const [modalOpen, setModalOpen] = useState(false);
 
-    const [photos, setPhotos] = useState<string[]>([]);
+    const [photos, setPhotos] = useState<any[]>([]);
 
     const [modalFor, setModalFor] = useState<"avatar" | "photo" | null>(null);
     const [photoModalOpen, setPhotoModalOpen] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [photoToDelete, setPhotoToDelete] = useState<string | null>(null);
 
     const openModal = (type: "avatar" | "photo") => {
         setModalFor(type);
@@ -49,6 +54,7 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const user = response.data;
+            console.log(user)
             setUsername(user.username);
             setFname(user.fname);
             setLname(user.lname);
@@ -56,7 +62,7 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
             setFollowing(user.following || 0);
             setPosts(user.photos.length || 0);
             setAvatarUrl(user.avatar || "/stock-profile-pic.png");
-            if (user.photos) setPhotos(user.photos.map((p: any) => p.url));
+            if (user.photos) setPhotos(user.photos.map((p: any) => ({ id: p.id, url: p.url })));
         } catch (err: any) {
             console.error(err);
         }
@@ -97,6 +103,22 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
         }
         setModalOpen(false);
         setModalFor(null);
+    };
+
+    const handleDeletePhoto = async () => {
+        if (!photoToDelete) return;
+        try {
+            await axios.delete(`/api/photo/${photoToDelete}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setPhotos(photos.filter((p) => p.id !== photoToDelete));
+            setPosts((prev) => prev - 1);
+        } catch (err) {
+            console.error("Failed to delete photo", err);
+        } finally {
+            setConfirmOpen(false);
+            setPhotoToDelete(null);
+        }
     };
 
     return (
@@ -145,12 +167,22 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
                         <span style={{ fontSize: "2rem", fontWeight: "bold" }}>+</span>
                     </div>
                     {photos.map((photo, idx) => (
-                        <div key={idx} className="gallery-item" onClick={() => openPhotoModal(idx)}>
+                        <div key={idx} className="gallery-item photo-item" onClick={() => openPhotoModal(idx)}>
                             <img
-                                src={photo}
+                                src={photo.url}
                                 alt={`Photo ${idx + 1}`}
                                 style={{ cursor: "pointer" }}
                             />
+                            <button
+                                className="delete-photo-btn"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPhotoToDelete(photo.id);
+                                    setConfirmOpen(true);
+                                }}
+                            >
+                                <X size={18} />
+                            </button>
                         </div>
                     ))}
                 </div>
@@ -180,6 +212,18 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
                     document.body
                 )
             }
+
+            {confirmOpen &&
+                createPortal(
+                    <ConfirmModal
+                        isOpen={confirmOpen}
+                        title="Delete Photo"
+                        message="Are you sure you want to delete this photo?"
+                        onConfirm={handleDeletePhoto}
+                        onCancel={() => setConfirmOpen(false)}
+                    />,
+                    document.body
+                )}
         </>
     );
 };

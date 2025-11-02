@@ -14,7 +14,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
     const [fname, setFname] = useState("");
     const [lname, setLname] = useState("");
     const [avatarUrl, setAvatarUrl] = useState("/stock-profile-pic.png");
-    const [photos, setPhotos] = useState<string[]>([]);
+    const [photos, setPhotos] = useState<any[]>([]);
     const [posts, setPosts] = useState(0);
     const [followers, setFollowers] = useState<number>(0);
     const [following, setFollowing] = useState<number>(0);
@@ -41,7 +41,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
             setFollowing(user.following || 0);
             setAvatarUrl(user.avatar || "/stock-profile-pic.png");
             if (user.photos) {
-                setPhotos(user.photos.map((p: any) => p.url));
+                setPhotos(user.photos.map((p: any) => ({ id: p.id, url: p.url })));
                 setPosts(user.photos.length);
             }
         } catch (err) {
@@ -105,7 +105,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
                             onClick={() => openPhotoModal(idx)}
                         >
                             <img
-                                src={photo}
+                                src={photo.url}
                                 alt={`Photo ${idx + 1}`}
                                 style={{ cursor: "pointer" }}
                             />
