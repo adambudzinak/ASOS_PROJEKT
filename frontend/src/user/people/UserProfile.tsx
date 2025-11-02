@@ -4,6 +4,7 @@ import axios from "../../auth/CrossOrigin";
 import "../home-screen/HomeScreen.css";
 import { createPortal } from "react-dom";
 import PhotoModal from "../../common/PhotoModal";
+import FollowersModal from "../../common/FollowersModal";
 
 interface UserProfileProps {
     token: string;
@@ -11,6 +12,7 @@ interface UserProfileProps {
     onBack: () => void;
 }
 const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) => {
+    const [userId, setUserId] = useState("");
     const [fname, setFname] = useState("");
     const [lname, setLname] = useState("");
     const [avatarUrl, setAvatarUrl] = useState("/stock-profile-pic.png");
@@ -18,9 +20,14 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
     const [posts, setPosts] = useState(0);
     const [followers, setFollowers] = useState<number>(0);
     const [following, setFollowing] = useState<number>(0);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [loadingFollow, setLoadingFollow] = useState(false);
 
     const [photoModalOpen, setPhotoModalOpen] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+
+    const [followersModalOpen, setFollowersModalOpen] = useState(false);
+    const [followingModalOpen, setFollowingModalOpen] = useState(false);
 
     const openPhotoModal = (index: number) => {
         setCurrentPhotoIndex(index);
@@ -35,11 +42,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
             });
             const user = response.data;
 
+            setUserId(user.id);
             setFname(user.fname);
             setLname(user.lname);
             setFollowers(user.followers || 0);
             setFollowing(user.following || 0);
             setAvatarUrl(user.avatar || "/stock-profile-pic.png");
+            setIsFollowing(user.isFollowing || false);
             if (user.photos) {
                 setPhotos(user.photos.map((p: any) => ({ id: p.id, url: p.url })));
                 setPosts(user.photos.length);
@@ -52,6 +61,26 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
     useEffect(() => {
         if (username) fetchUserProfile();
     }, [username]);
+
+    const handleFollowToggle = async () => {
+        try {
+            setLoadingFollow(true);
+            const endpoint = isFollowing ? "/api/unfollow" : "/api/follow";
+
+            const response = await axios.post(
+                endpoint,
+                { userId },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            setIsFollowing(response.data.isFollowing);
+            setFollowers(response.data.followers);
+        } catch (err) {
+            console.error("Failed to toggle follow", err);
+        } finally {
+            setLoadingFollow(false);
+        }
+    };
 
     return (
         <>
@@ -78,6 +107,19 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
                                 {fname} {lname}
                             </h3>
                             <span className="stats-label">@{username}</span>
+                            <button
+                                onClick={handleFollowToggle}
+                                disabled={loadingFollow}
+                                className="glass-button mt-3"
+                                style={{
+                                    maxWidth: "200px",
+                                    background: isFollowing
+                                        ? "rgba(255, 255, 255, 0.1)"
+                                        : "rgba(255, 255, 255, 0.15)"
+                                }}
+                            >
+                                {loadingFollow ? "..." : isFollowing ? "Unfollow" : "Follow"}
+                            </button>
                         </div>
 
                         <div className="profile-right">
@@ -85,11 +127,11 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
                                 <span className="stats-value">{posts}</span>
                                 <span className="stats-label">Posts</span>
                             </div>
-                            <div className="stats-item">
+                            <div className="stats-item" style={{ cursor: "pointer" }} onClick={() => setFollowersModalOpen(true)}>
                                 <span className="stats-value">{followers}</span>
                                 <span className="stats-label">Followers</span>
                             </div>
-                            <div className="stats-item">
+                            <div className="stats-item" style={{ cursor: "pointer" }} onClick={() => setFollowingModalOpen(true)}>
                                 <span className="stats-value">{following}</span>
                                 <span className="stats-label">Following</span>
                             </div>
@@ -121,6 +163,30 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
                         onClose={closePhotoModal}
                         photos={photos}
                         initialIndex={currentPhotoIndex}
+                    />,
+                    document.body
+                )}
+
+            {followersModalOpen &&
+                createPortal(
+                    <FollowersModal
+                        isOpen={followersModalOpen}
+                        onClose={() => setFollowersModalOpen(false)}
+                        userId={userId}
+                        type="followers"
+                        token={token}
+                    />,
+                    document.body
+                )}
+
+            {followingModalOpen &&
+                createPortal(
+                    <FollowersModal
+                        isOpen={followingModalOpen}
+                        onClose={() => setFollowingModalOpen(false)}
+                        userId={userId}
+                        type="following"
+                        token={token}
                     />,
                     document.body
                 )}

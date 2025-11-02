@@ -14,7 +14,11 @@ export async function getUserData(req: AuthenticatedRequest, res: Response, next
     try {
         const user = await prisma.user.findUnique({
             where: { username: req.user?.username },
-            include: { photos: { orderBy: { createdAt: "desc" } } },
+            include: {
+                photos: { orderBy: { createdAt: "desc" } },
+                followers: true,
+                following: true
+            },
         });
 
         if (!user) throw new AppError(404, "User not found");
@@ -25,7 +29,12 @@ export async function getUserData(req: AuthenticatedRequest, res: Response, next
             url: `${baseUrl}/uploads/${photo.filename}`,
         }));
 
-        res.status(200).json({ ...user, photos: photosWithUrls });
+        res.status(200).json({
+            ...user,
+            photos: photosWithUrls,
+            followers: user.followers.length,
+            following: user.following.length
+        });
     } catch (error) {
         next(error)
     }
@@ -116,10 +125,15 @@ export const searchUsers: RequestHandler = async (req: AuthenticatedRequest, res
 export async function getUserByUsername(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
         const username = req.params.username;
+        const currentUserId = req.user!.id;
 
         const user = await prisma.user.findUnique({
             where: { username },
-            include: { photos: { orderBy: { createdAt: "desc" } } },
+            include: {
+                photos: { orderBy: { createdAt: "desc" } },
+                followers: true,
+                following: true
+            },
         });
 
         if (!user) throw new AppError(404, "User not found");
@@ -130,7 +144,22 @@ export async function getUserByUsername(req: AuthenticatedRequest, res: Response
             url: `${baseUrl}/uploads/${photo.filename}`,
         }));
 
-        res.status(200).json({ ...user, photos: photosWithUrls });
+        const isFollowing = await prisma.follow.findUnique({
+            where: {
+                followerId_followingId: {
+                    followerId: currentUserId,
+                    followingId: user.id
+                }
+            }
+        });
+
+        res.status(200).json({
+            ...user,
+            photos: photosWithUrls,
+            followers: user.followers.length,
+            following: user.following.length,
+            isFollowing: !!isFollowing
+        });
     } catch (error) {
         next(error);
     }

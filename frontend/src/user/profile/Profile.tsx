@@ -9,12 +9,14 @@ import { createPortal } from "react-dom";
 import ImageCropModal from "../../common/UploadModal";
 import { X } from "lucide-react";
 import ConfirmModal from "../../common/ConfirmModal";
+import FollowersModal from "../../common/FollowersModal";
 
 interface ProfileProps {
     token: string;
 }
 
 const Profile: React.FC<ProfileProps> = ({ token }) => {
+    const [userId, setUserId] = useState("");
     const [username, setUsername] = useState("");
     const [fname, setFname] = useState("");
     const [lname, setLname] = useState("");
@@ -33,6 +35,9 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
 
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [photoToDelete, setPhotoToDelete] = useState<string | null>(null);
+
+    const [followersModalOpen, setFollowersModalOpen] = useState(false);
+    const [followingModalOpen, setFollowingModalOpen] = useState(false);
 
     const openModal = (type: "avatar" | "photo") => {
         setModalFor(type);
@@ -55,6 +60,7 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
             });
             const user = response.data;
             console.log(user)
+            setUserId(user.id);
             setUsername(user.username);
             setFname(user.fname);
             setLname(user.lname);
@@ -151,11 +157,19 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
                                 <span className="stats-value">{posts}</span>
                                 <span className="stats-label">Posts</span>
                             </div>
-                            <div className="stats-item">
+                            <div
+                                className="stats-item"
+                                style={{ cursor: "pointer" }}
+                                onClick={() => setFollowersModalOpen(true)}
+                            >
                                 <span className="stats-value">{followers}</span>
                                 <span className="stats-label">Followers</span>
                             </div>
-                            <div className="stats-item">
+                            <div
+                                className="stats-item"
+                                style={{ cursor: "pointer" }}
+                                onClick={() => setFollowingModalOpen(true)}
+                            >
                                 <span className="stats-value">{following}</span>
                                 <span className="stats-label">Following</span>
                             </div>
@@ -221,6 +235,30 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
                         message="Are you sure you want to delete this photo?"
                         onConfirm={handleDeletePhoto}
                         onCancel={() => setConfirmOpen(false)}
+                    />,
+                    document.body
+                )}
+
+            {followersModalOpen &&
+                createPortal(
+                    <FollowersModal
+                        isOpen={followersModalOpen}
+                        onClose={() => setFollowersModalOpen(false)}
+                        userId={userId}
+                        type="followers"
+                        token={token}
+                    />,
+                    document.body
+                )}
+
+            {followingModalOpen &&
+                createPortal(
+                    <FollowersModal
+                        isOpen={followingModalOpen}
+                        onClose={() => setFollowingModalOpen(false)}
+                        userId={userId}
+                        type="following"
+                        token={token}
                     />,
                     document.body
                 )}

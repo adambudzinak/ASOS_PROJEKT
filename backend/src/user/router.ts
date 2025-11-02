@@ -8,6 +8,13 @@ import {
     getUserByUsername,
     deletePhoto
 } from "./controller/user";
+import {
+    followUser,
+    unfollowUser,
+    getFollowers,
+    getFollowing,
+    checkFollowStatus
+} from "./controller/follow";
 import { storage } from "./middleware/multer-config";
 import multer from "multer";
 
@@ -21,5 +28,11 @@ router.get("/user/:username", getUserByUsername);
 router.post("/update-avatar", updateAvatar);
 router.post("/upload-photo", upload.single("photo"), uploadPhoto);
 router.delete("/photo/:id", deletePhoto);
+
+router.post("/follow", followUser);
+router.post("/unfollow", unfollowUser);
+router.get("/followers/:userId", getFollowers);
+router.get("/following/:userId", getFollowing);
+router.get("/follow-status/:userId", checkFollowStatus);
 
 export default router
