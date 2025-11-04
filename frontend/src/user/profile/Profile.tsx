@@ -1,13 +1,13 @@
 import React from "react";
 import axios from "../../auth/CrossOrigin";
 import "../home-screen/HomeScreen.css"
-import { useEffect, useState } from "react";
+import {useEffect, useState} from "react";
 import PhotoModal from "../../common/PhotoModal";
 import "./Profile.css"
 import PencilIcon from "../../common/PencilIcon";
-import { createPortal } from "react-dom";
+import {createPortal} from "react-dom";
 import ImageCropModal from "../../common/UploadModal";
-import { X } from "lucide-react";
+import {X} from "lucide-react";
 import ConfirmModal from "../../common/ConfirmModal";
 import FollowersModal from "../../common/FollowersModal";
 
@@ -15,7 +15,7 @@ interface ProfileProps {
     token: string;
 }
 
-const Profile: React.FC<ProfileProps> = ({ token }) => {
+const Profile: React.FC<ProfileProps> = ({token}) => {
     const [userId, setUserId] = useState("");
     const [username, setUsername] = useState("");
     const [fname, setFname] = useState("");
@@ -56,7 +56,7 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
     const fetchUserData = async () => {
         try {
             const response = await axios.get("/api/get-user", {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: {Authorization: `Bearer ${token}`}
             });
             const user = response.data;
             console.log(user)
@@ -68,7 +68,7 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
             setFollowing(user.following || 0);
             setPosts(user.photos.length || 0);
             setAvatarUrl(user.avatar || "/stock-profile-pic.png");
-            if (user.photos) setPhotos(user.photos.map((p: any) => ({ id: p.id, url: p.url })));
+            if (user.photos) setPhotos(user.photos.map((p: any) => ({id: p.id, url: p.url, photoTags: p.photoTags || []})));
         } catch (err: any) {
             console.error(err);
         }
@@ -78,13 +78,13 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
         fetchUserData();
     }, [token]);
 
-    const handleAvatarUpdate = async (newImage: string | File) => {
+    const handleAvatarUpdate = async (newImage: string | File, tags?: string) => {
         if (modalFor === "avatar") {
             try {
                 await axios.post(
                     "/api/update-avatar",
-                    { avatar: newImage },
-                    { headers: { Authorization: `Bearer ${token}` } }
+                    {avatar: newImage},
+                    {headers: {Authorization: `Bearer ${token}`}}
                 );
                 setAvatarUrl(newImage as string);
             } catch (err) {
@@ -94,6 +94,7 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
             if (newImage instanceof File) {
                 const formData = new FormData();
                 formData.append("photo", newImage);
+                if (tags) formData.append("tags", tags);
                 try {
                     await axios.post("/api/upload-photo", formData, {
                         headers: {
@@ -115,7 +116,7 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
         if (!photoToDelete) return;
         try {
             await axios.delete(`/api/photo/${photoToDelete}`, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {Authorization: `Bearer ${token}`},
             });
             setPhotos(photos.filter((p) => p.id !== photoToDelete));
             setPosts((prev) => prev - 1);
@@ -133,19 +134,19 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
                 <div className="profile-container">
                     <div className="profile-card">
                         <div className="profile-left">
-                            <div className="avatar-wrapper" style={{ position: "relative", width: 120, height: 120 }}>
+                            <div className="avatar-wrapper" style={{position: "relative", width: 120, height: 120}}>
                                 <img
                                     src={avatarUrl}
                                     alt="Profile"
                                     className="profile-pic"
-                                    style={{ width: "100%", height: "100%" }}
+                                    style={{width: "100%", height: "100%"}}
                                 />
                                 <button
                                     className="avatar-edit-btn"
                                     title="Change photo"
                                     onClick={() => openModal("avatar")}
                                 >
-                                    <PencilIcon />
+                                    <PencilIcon/>
                                 </button>
                             </div>
                             <h3 className="profile-name">{fname} {lname}</h3>
@@ -159,7 +160,7 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
                             </div>
                             <div
                                 className="stats-item"
-                                style={{ cursor: "pointer" }}
+                                style={{cursor: "pointer"}}
                                 onClick={() => setFollowersModalOpen(true)}
                             >
                                 <span className="stats-value">{followers}</span>
@@ -167,7 +168,7 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
                             </div>
                             <div
                                 className="stats-item"
-                                style={{ cursor: "pointer" }}
+                                style={{cursor: "pointer"}}
                                 onClick={() => setFollowingModalOpen(true)}
                             >
                                 <span className="stats-value">{following}</span>
@@ -178,15 +179,26 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
                 </div>
                 <div className="profile-gallery">
                     <div className="gallery-item add-photo" onClick={() => openModal("photo")}>
-                        <span style={{ fontSize: "2rem", fontWeight: "bold" }}>+</span>
+                        <span style={{fontSize: "2rem", fontWeight: "bold"}}>+</span>
                     </div>
                     {photos.map((photo, idx) => (
-                        <div key={idx} className="gallery-item photo-item" onClick={() => openPhotoModal(idx)}>
+                        <div key={idx} className="gallery-item photo-item" onClick={() => openPhotoModal(idx)}
+                             style={{position: "relative"}}
+                        >
                             <img
                                 src={photo.url}
                                 alt={`Photo ${idx + 1}`}
-                                style={{ cursor: "pointer" }}
+                                style={{cursor: "pointer"}}
                             />
+                            {photo.photoTags?.length > 0 && (
+                                <div className="tags-container">
+                                    {photo.photoTags.map(
+                                        (pt: any) => (
+                                            <span key={pt.tag.id} className="tag">#{pt.tag.name}</span>
+                                        )
+                                    )}
+                                </div>
+                            )}
                             <button
                                 className="delete-photo-btn"
                                 onClick={(e) => {
@@ -195,7 +207,7 @@ const Profile: React.FC<ProfileProps> = ({ token }) => {
                                     setConfirmOpen(true);
                                 }}
                             >
-                                <X size={18} />
+                                <X size={18}/>
                             </button>
                         </div>
                     ))}
