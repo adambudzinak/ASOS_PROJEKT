@@ -152,15 +152,6 @@ const UserProfile: React.FC<UserProfileProps> = ({token, username, onBack}) => {
                                 alt={`Photo ${idx + 1}`}
                                 style={{cursor: "pointer"}}
                             />
-                            {photo.photoTags?.length > 0 && (
-                                <div className="tags-container">
-                                    {photo.photoTags.map(
-                                        (pt: any) => (
-                                            <span key={pt.tag.id} className="tag">#{pt.tag.name}</span>
-                                        )
-                                    )}
-                                </div>
-                            )}
                         </div>
                     ))}
                 </div>
