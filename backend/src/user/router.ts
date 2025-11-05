@@ -3,10 +3,8 @@ import {
     testProtectedRoute,
     getUserData,
     updateAvatar,
-    uploadPhoto,
     searchUsers,
     getUserByUsername,
-    deletePhoto
 } from "./controller/user";
 import {
     followUser,
@@ -15,6 +13,7 @@ import {
     getFollowing,
     checkFollowStatus
 } from "./controller/follow";
+import { uploadPhoto, deletePhoto } from "./controller/photo";
 import { storage } from "./middleware/multer-config";
 import multer from "multer";
 
@@ -26,6 +25,7 @@ router.get('/get-user', getUserData)
 router.get("/search-users", searchUsers);
 router.get("/user/:username", getUserByUsername);
 router.post("/update-avatar", updateAvatar);
+
 router.post("/upload-photo", upload.single("photo"), uploadPhoto);
 router.delete("/photo/:id", deletePhoto);
 
