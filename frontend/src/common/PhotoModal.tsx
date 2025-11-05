@@ -42,6 +42,8 @@ const PhotoModal: React.FC<PhotoModalProps> = ({ isOpen, onClose, photos, initia
 
     if (typeof document === "undefined") return null;
 
+    const currentPhoto = photos[currentIndex];
+
     return createPortal(
         <AnimatePresence>
             {isOpen && (
@@ -122,6 +124,15 @@ const PhotoModal: React.FC<PhotoModalProps> = ({ isOpen, onClose, photos, initia
                                 objectFit: "contain",
                             }}
                         />
+                        {currentPhoto.photoTags?.length > 0 && (
+                            <div className="tags-container">
+                                {currentPhoto.photoTags.map((pt: any) => (
+                                    <span key={pt.tag.id} className="tag">
+                                        #{pt.tag.name}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </motion.div>
                 </>
             )}

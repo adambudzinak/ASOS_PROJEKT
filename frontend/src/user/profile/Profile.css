@@ -161,26 +161,6 @@
   background-color: rgba(0, 0, 0, 0.8);
 }
 
-.tags-container {
-    position: absolute;
-    bottom: 5px;
-    left: 5px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    z-index: 2;
-}
-
-.tag {
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    padding: 2px 6px;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    backdrop-filter: blur(3px);
-}
-
-
 @media (max-width: 768px) {
     .profile-card {
         flex-direction: column;

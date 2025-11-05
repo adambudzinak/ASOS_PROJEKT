@@ -190,15 +190,6 @@ const Profile: React.FC<ProfileProps> = ({token}) => {
                                 alt={`Photo ${idx + 1}`}
                                 style={{cursor: "pointer"}}
                             />
-                            {photo.photoTags?.length > 0 && (
-                                <div className="tags-container">
-                                    {photo.photoTags.map(
-                                        (pt: any) => (
-                                            <span key={pt.tag.id} className="tag">#{pt.tag.name}</span>
-                                        )
-                                    )}
-                                </div>
-                            )}
                             <button
                                 className="delete-photo-btn"
                                 onClick={(e) => {
