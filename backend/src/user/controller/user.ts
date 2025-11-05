@@ -1,21 +1,24 @@
-import { AppError } from "../../index/types/app-error";
-import { UserResponse } from "../../index/payload/user-res";
+import {AppError} from "../../index/types/app-error";
+import {UserResponse} from "../../index/payload/user-res";
 import prisma from "../../database";
-import { Request, Response, NextFunction, RequestHandler } from "express"
-import { AuthenticatedRequest } from "../../index/payload/auth-req";
+import {Request, Response, NextFunction, RequestHandler} from "express"
+import {AuthenticatedRequest} from "../../index/payload/auth-req";
 import fs from "fs";
 import path from "path";
 
 export async function testProtectedRoute(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    res.status(200).json({ message: "hello from protected route", id: req.user?.id, username: req.user?.username })
+    res.status(200).json({message: "hello from protected route", id: req.user?.id, username: req.user?.username})
 }
 
 export async function getUserData(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
         const user = await prisma.user.findUnique({
-            where: { username: req.user?.username },
+            where: {username: req.user?.username},
             include: {
-                photos: { orderBy: { createdAt: "desc" } },
+                photos: {
+                    orderBy: {createdAt: "desc"},
+                    include: {photoTags: {include: {tag: true}}}
+                },
                 followers: true,
                 following: true
             },
@@ -42,18 +45,18 @@ export async function getUserData(req: AuthenticatedRequest, res: Response, next
 
 export async function updateAvatar(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-        const { avatar } = req.body;
+        const {avatar} = req.body;
 
         if (!avatar || typeof avatar !== "string") {
             throw new AppError(400, "Missing avatar data")
         }
 
         const updatedUser = await prisma.user.update({
-            where: { username: req.user?.username },
-            data: { avatar },
+            where: {username: req.user?.username},
+            data: {avatar},
         });
 
-        res.status(200).json({ avatar: updatedUser.avatar });
+        res.status(200).json({avatar: updatedUser.avatar});
     } catch (error) {
         next(error)
     }
@@ -67,25 +70,52 @@ export async function uploadPhoto(req: AuthenticatedRequest, res: Response, next
 
         const filename = req.file.filename;
 
+        const tagInput = (req.body.tags as string) || "";
+        const tagNames = tagInput
+            .split(" ")
+            .map(t => t.trim().toLowerCase())
+            .filter(t => t.length > 0);
+
+        const tags = await Promise.all(
+            tagNames.map(async (name) => {
+                return prisma.tag.upsert({
+                    where: {name},
+                    update: {},
+                    create: {name},
+                });
+            })
+        );
+
         const newPhoto = await prisma.photo.create({
             data: {
                 filename,
                 userId: req.user!.id,
+                photoTags: {
+                    create: tags.map(tag => ({
+                        tag: {
+                            connect: {id: tag.id},
+                        },
+                    })),
+                },
+            },
+            include: {
+                photoTags: {include: {tag: true}},
             },
         });
 
-        res.status(201).json({ photo: newPhoto });
+        res.status(201).json({photo: newPhoto});
     } catch (error) {
-        next(error)
+        next(error);
     }
 }
+
 
 export const searchUsers: RequestHandler = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const query = (req.query.query as string)?.trim();
 
         if (!query || query.length < 1) {
-            res.status(200).json({ users: [] });
+            res.status(200).json({users: []});
             return;
         }
 
@@ -94,9 +124,9 @@ export const searchUsers: RequestHandler = async (req: AuthenticatedRequest, res
                 AND: [
                     {
                         OR: [
-                            { username: { contains: query, mode: "insensitive" } },
-                            { fname: { contains: query, mode: "insensitive" } },
-                            { lname: { contains: query, mode: "insensitive" } },
+                            {username: {contains: query, mode: "insensitive"}},
+                            {fname: {contains: query, mode: "insensitive"}},
+                            {lname: {contains: query, mode: "insensitive"}},
                         ],
                     },
                     {
@@ -116,7 +146,7 @@ export const searchUsers: RequestHandler = async (req: AuthenticatedRequest, res
             take: 20,
         });
 
-        res.status(200).json({ users });
+        res.status(200).json({users});
     } catch (error) {
         next(error);
     }
@@ -128,9 +158,12 @@ export async function getUserByUsername(req: AuthenticatedRequest, res: Response
         const currentUserId = req.user!.id;
 
         const user = await prisma.user.findUnique({
-            where: { username },
+            where: {username},
             include: {
-                photos: { orderBy: { createdAt: "desc" } },
+                photos: {
+                    orderBy: { createdAt: "desc" },
+                    include: { photoTags: { include: { tag: true } } },
+                },
                 followers: true,
                 following: true
             },
@@ -170,20 +203,20 @@ export async function deletePhoto(req: AuthenticatedRequest, res: Response, next
         const photoId = req.params.id;
         const userId = req.user!.id;
 
-        const photo = await prisma.photo.findUnique({ where: { id: photoId } });
+        const photo = await prisma.photo.findUnique({where: {id: photoId}});
         if (!photo) throw new AppError(404, "Photo not found");
 
         if (photo.userId !== userId) throw new AppError(403, "Not authorized to delete this photo");
 
         const filePath = path.join(process.cwd(), "uploads", photo.filename);
 
-        await prisma.photo.delete({ where: { id: photoId } });
+        await prisma.photo.delete({where: {id: photoId}});
 
         if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
         }
 
-        res.status(200).json({ message: "Photo deleted successfully" });
+        res.status(200).json({message: "Photo deleted successfully"});
     } catch (error) {
         next(error);
     }

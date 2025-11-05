@@ -11,7 +11,7 @@ import "react-image-crop/dist/ReactCrop.css";
 
 interface ImageCropperProps {
     closeModal: () => void;
-    updateAvatar: (image: string | File) => void;
+    updateAvatar: (image: string | File, tags?: string) => void;
     forType?: "avatar" | "photo" | null;
 }
 
@@ -24,6 +24,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ closeModal, updateAvatar, f
     const [imgSrc, setImgSrc] = useState<string>("");
     const [crop, setCrop] = useState<PercentCrop>();
     const [error, setError] = useState<string>("");
+    const [tagInput, setTagInput] = useState<string>("");
 
     const onSelectFile = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -89,7 +90,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ closeModal, updateAvatar, f
             previewCanvasRef.current.toBlob((blob) => {
                 if (!blob) return;
                 const file = new File([blob], "photo.png", { type: "image/png" });
-                updateAvatar(file);
+                updateAvatar(file, tagInput);
             }, "image/png");
         }
 
@@ -128,7 +129,18 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ closeModal, updateAvatar, f
                             onLoad={onImageLoad}
                         />
                     </ReactCrop>
-
+                    {forType === "photo" && (
+                        <div className="mt-3 text-center w-100">
+                            <label className="form-label fw-semibold">Add tags (separated by spaces)</label>
+                            <input
+                                type="text"
+                                value={tagInput}
+                                onChange={(e) => setTagInput(e.target.value)}
+                                placeholder="e.g. travel friends sunset"
+                                className="form-control text-center"
+                            />
+                        </div>
+                    )}
                     <button
                         className="glass-button"
                         onClick={handleCrop}

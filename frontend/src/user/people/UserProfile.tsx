@@ -1,8 +1,8 @@
 import "../profile/Profile.css"
-import React, { useEffect, useState } from "react";
+import React, {useEffect, useState} from "react";
 import axios from "../../auth/CrossOrigin";
 import "../home-screen/HomeScreen.css";
-import { createPortal } from "react-dom";
+import {createPortal} from "react-dom";
 import PhotoModal from "../../common/PhotoModal";
 import FollowersModal from "../../common/FollowersModal";
 
@@ -11,7 +11,8 @@ interface UserProfileProps {
     username: string;
     onBack: () => void;
 }
-const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) => {
+
+const UserProfile: React.FC<UserProfileProps> = ({token, username, onBack}) => {
     const [userId, setUserId] = useState("");
     const [fname, setFname] = useState("");
     const [lname, setLname] = useState("");
@@ -38,7 +39,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
     const fetchUserProfile = async () => {
         try {
             const response = await axios.get(`/api/user/${username}`, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {Authorization: `Bearer ${token}`},
             });
             const user = response.data;
 
@@ -50,7 +51,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
             setAvatarUrl(user.avatar || "/stock-profile-pic.png");
             setIsFollowing(user.isFollowing || false);
             if (user.photos) {
-                setPhotos(user.photos.map((p: any) => ({ id: p.id, url: p.url })));
+                setPhotos(user.photos.map((p: any) => ({id: p.id, url: p.url, photoTags: p.photoTags || []})));
                 setPosts(user.photos.length);
             }
         } catch (err) {
@@ -69,8 +70,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
 
             const response = await axios.post(
                 endpoint,
-                { userId },
-                { headers: { Authorization: `Bearer ${token}` } }
+                {userId},
+                {headers: {Authorization: `Bearer ${token}`}}
             );
 
             setIsFollowing(response.data.isFollowing);
@@ -95,12 +96,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
                 <div className="profile-container">
                     <div className="profile-card">
                         <div className="profile-left">
-                            <div className="avatar-wrapper" style={{ width: 120, height: 120 }}>
+                            <div className="avatar-wrapper" style={{width: 120, height: 120}}>
                                 <img
                                     src={avatarUrl}
                                     alt="Profile"
                                     className="profile-pic"
-                                    style={{ width: "100%", height: "100%" }}
+                                    style={{width: "100%", height: "100%"}}
                                 />
                             </div>
                             <h3 className="profile-name">
@@ -127,11 +128,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
                                 <span className="stats-value">{posts}</span>
                                 <span className="stats-label">Posts</span>
                             </div>
-                            <div className="stats-item" style={{ cursor: "pointer" }} onClick={() => setFollowersModalOpen(true)}>
+                            <div className="stats-item" style={{cursor: "pointer"}}
+                                 onClick={() => setFollowersModalOpen(true)}>
                                 <span className="stats-value">{followers}</span>
                                 <span className="stats-label">Followers</span>
                             </div>
-                            <div className="stats-item" style={{ cursor: "pointer" }} onClick={() => setFollowingModalOpen(true)}>
+                            <div className="stats-item" style={{cursor: "pointer"}}
+                                 onClick={() => setFollowingModalOpen(true)}>
                                 <span className="stats-value">{following}</span>
                                 <span className="stats-label">Following</span>
                             </div>
@@ -141,19 +144,27 @@ const UserProfile: React.FC<UserProfileProps> = ({ token, username, onBack }) =>
 
                 <div className="profile-gallery">
                     {photos.map((photo, idx) => (
-                        <div
-                            key={idx}
-                            className="gallery-item"
-                            onClick={() => openPhotoModal(idx)}
+                        <div key={idx} className="gallery-item photo-item" onClick={() => openPhotoModal(idx)}
+                            style={{position: "relative"}}
                         >
                             <img
                                 src={photo.url}
                                 alt={`Photo ${idx + 1}`}
-                                style={{ cursor: "pointer" }}
+                                style={{cursor: "pointer"}}
                             />
+                            {photo.photoTags?.length > 0 && (
+                                <div className="tags-container">
+                                    {photo.photoTags.map(
+                                        (pt: any) => (
+                                            <span key={pt.tag.id} className="tag">#{pt.tag.name}</span>
+                                        )
+                                    )}
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
+
             </div>
 
             {photoModalOpen &&
