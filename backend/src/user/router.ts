@@ -17,6 +17,12 @@ import { uploadPhoto, deletePhoto } from "./controller/photo";
 import { storage } from "./middleware/multer-config";
 import multer from "multer";
 
+import {
+    getComments,
+    addComment,
+    deleteComment
+} from "./controller/comment";
+
 const router = Router()
 const upload = multer({ storage });
 
@@ -34,5 +40,9 @@ router.post("/unfollow", unfollowUser);
 router.get("/followers/:userId", getFollowers);
 router.get("/following/:userId", getFollowing);
 router.get("/follow-status/:userId", checkFollowStatus);
+
+router.get("/photo/:photoId/comments", getComments);
+router.post("/comment", addComment);
+router.delete("/comment/:commentId", deleteComment);
 
 export default router

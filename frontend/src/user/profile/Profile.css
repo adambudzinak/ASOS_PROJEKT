@@ -135,30 +135,30 @@
 }
 
 .delete-photo-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(0, 0, 0, 0.6);
-  border: none;
-  color: white;
-  border-radius: 50%;
-  opacity: 0;
-  cursor: pointer;
-  transition: opacity 0.2s ease-in-out, background-color 0.2s;
-  padding: 0;
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: none;
+    color: white;
+    border-radius: 50%;
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 0.2s ease-in-out, background-color 0.2s;
+    padding: 0;
 }
 
 .photo-item:hover .delete-photo-btn {
-  opacity: 1;
+    opacity: 1;
 }
 
 .delete-photo-btn:hover {
-  background-color: rgba(0, 0, 0, 0.8);
+    background-color: rgba(0, 0, 0, 0.8);
 }
 
 @media (max-width: 768px) {
@@ -183,7 +183,7 @@
         width: 100%;
     }
 
-     .profile-gallery {
+    .profile-gallery {
         grid-template-columns: repeat(2, 1fr);
     }
 }

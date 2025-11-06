@@ -14,30 +14,32 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  username  String   @unique
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  username  String    @unique
   fname     String
   lname     String
   password  String
   avatar    String?
   photos    Photo[]
-  followers Follow[] @relation("UserFollowers")
-  following Follow[] @relation("UserFollowing")
+  followers Follow[]  @relation("UserFollowers")
+  following Follow[]  @relation("UserFollowing")
+  Comment   Comment[]
 }
 
 model Photo {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
+  id        String     @id @default(uuid())
+  createdAt DateTime   @default(now())
   filename  String
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   photoTags PhotoTag[]
+  comments  Comment[]
 }
 
 model Tag {
-  id     String   @id @default(uuid())
-  name   String   @unique
+  id     String     @id @default(uuid())
+  name   String     @unique
   photos PhotoTag[]
 }
 
@@ -51,7 +53,6 @@ model PhotoTag {
   @@id([photoId, tagId])
 }
 
-
 model Follow {
   id          String   @id @default(uuid())
   createdAt   DateTime @default(now())
@@ -63,4 +64,17 @@ model Follow {
   @@unique([followerId, followingId])
   @@index([followerId])
   @@index([followingId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  text      String   @db.VarChar(100)
+  photoId   String
+  userId    String
+
+  photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([photoId])
 }

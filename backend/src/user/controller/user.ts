@@ -15,8 +15,24 @@ export async function getUserData(req: AuthenticatedRequest, res: Response, next
             where: {username: req.user?.username},
             include: {
                 photos: {
-                    orderBy: {createdAt: "desc"},
-                    include: {photoTags: {include: {tag: true}}}
+                    orderBy: { createdAt: "desc" },
+                    include: {
+                        photoTags: { include: { tag: true } },
+                        comments: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        username: true,
+                                        fname: true,
+                                        lname: true,
+                                        avatar: true
+                                    }
+                                }
+                            },
+                            orderBy: { createdAt: 'asc' }
+                        }
+                    }
                 },
                 followers: true,
                 following: true
@@ -113,7 +129,23 @@ export async function getUserByUsername(req: AuthenticatedRequest, res: Response
             include: {
                 photos: {
                     orderBy: { createdAt: "desc" },
-                    include: { photoTags: { include: { tag: true } } },
+                    include: {
+                        photoTags: { include: { tag: true } },
+                        comments: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        username: true,
+                                        fname: true,
+                                        lname: true,
+                                        avatar: true
+                                    }
+                                }
+                            },
+                            orderBy: { createdAt: 'asc' }
+                        }
+                    }
                 },
                 followers: true,
                 following: true

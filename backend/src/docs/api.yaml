@@ -3,13 +3,15 @@ info:
   title: User & Follow API
   version: 1.0.0
   description: |
-    API pre správu používateľov, fotiek a sledovania.
+    API pre správu používateľov, fotiek, sledovania a komentárov.
 servers:
   - url: http://localhost:3000/api
 tags:
   - name: Guest
   - name: User
   - name: Follow
+  - name: Photo
+  - name: Comments
 security:
   - bearerAuth: []
 
@@ -79,6 +81,74 @@ components:
           type: string
           example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
+    CommentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        user:
+          $ref: "#/components/schemas/CommentUser"
+        photoId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+
+    CommentUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        fname:
+          type: string
+        lname:
+          type: string
+        avatar:
+          type: string
+          nullable: true
+
+    CommentRequest:
+      type: object
+      required:
+        - photoId
+        - text
+      properties:
+        photoId:
+          type: string
+          format: uuid
+        text:
+          type: string
+
+    CommentsListResponse:
+      type: object
+      properties:
+        comments:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommentResponse"
+
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
 paths:
   /sign-up:
     post:
@@ -105,6 +175,10 @@ paths:
                 $ref: "#/components/schemas/UserResponse"
         "400":
           description: Username already taken or invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /sign-in:
     post:
@@ -131,6 +205,10 @@ paths:
                 $ref: "#/components/schemas/TokenResponse"
         "401":
           description: Wrong credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /protected:
     get:
@@ -153,6 +231,10 @@ paths:
                     type: string
         "401":
           description: Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /get-user:
     get:
@@ -168,6 +250,10 @@ paths:
                 $ref: "#/components/schemas/UserResponse"
         "404":
           description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /update-avatar:
     post:
@@ -197,6 +283,10 @@ paths:
                     type: string
         "400":
           description: Missing or invalid avatar data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /upload-photo:
     post:
@@ -229,6 +319,10 @@ paths:
                     $ref: "#/components/schemas/PhotoResponse"
         "400":
           description: No file uploaded or invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /photo/{id}:
     delete:
@@ -244,10 +338,22 @@ paths:
       responses:
         "200":
           description: Photo deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
         "403":
           description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Photo not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /search-users:
     get:
@@ -293,6 +399,10 @@ paths:
                 $ref: "#/components/schemas/UserResponse"
         "404":
           description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /follow:
     post:
@@ -313,10 +423,31 @@ paths:
       responses:
         "200":
           description: Followed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  followers:
+                    type: integer
+                  following:
+                    type: integer
+                  isFollowing:
+                    type: boolean
         "400":
           description: Already following or invalid user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /unfollow:
     post:
@@ -337,8 +468,25 @@ paths:
       responses:
         "200":
           description: Unfollowed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  followers:
+                    type: integer
+                  following:
+                    type: integer
+                  isFollowing:
+                    type: boolean
         "400":
           description: You do not follow this user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /followers/{userId}:
     get:
@@ -412,3 +560,131 @@ paths:
                 properties:
                   isFollowing:
                     type: boolean
+
+  # ===== COMMENT ENDPOINTS =====
+  /photo/{photoId}/comments:
+    get:
+      summary: Get comments for a photo
+      tags: [Comments]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Successfully retrieved comments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentsListResponse'
+        '400':
+          description: Invalid photo ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Photo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comment:
+    post:
+      summary: Add a new comment
+      tags: [Comments]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentRequest'
+      responses:
+        '201':
+          description: Comment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentResponse'
+        '400':
+          description: Invalid input or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Photo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /comment/{commentId}:
+    delete:
+      summary: Delete a comment
+      tags: [Comments]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Comment deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - not authorized to delete this comment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
