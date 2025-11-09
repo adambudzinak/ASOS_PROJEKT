@@ -75,3 +75,57 @@ export async function deletePhoto(req: AuthenticatedRequest, res: Response, next
         next(error);
     }
 }
+
+export async function getPhotoById(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+        const { photoId } = req.params;
+
+        const photo = await prisma.photo.findUnique({
+            where: { id: photoId },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        fname: true,
+                        lname: true,
+                        avatar: true
+                    }
+                },
+                photoTags: {
+                    include: {
+                        tag: true
+                    }
+                },
+                comments: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                username: true,
+                                fname: true,
+                                lname: true,
+                                avatar: true
+                            }
+                        }
+                    },
+                    orderBy: { createdAt: 'asc' }
+                }
+            }
+        });
+
+        if (!photo) {
+            throw new AppError(404, "Photo not found");
+        }
+
+        const baseUrl = `${req.protocol}://${req.get("host")}`;
+        const photoWithUrl = {
+            ...photo,
+            url: `${baseUrl}/uploads/${photo.filename}`
+        };
+
+        res.status(200).json({ photo: photoWithUrl });
+    } catch (error) {
+        next(error);
+    }
+}

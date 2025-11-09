@@ -16,19 +16,32 @@
 .z-50 {
     top: 50%;
     left: 50%;
-    background: rgba(27, 230, 253, 0.85); /* lighter so page is still visible */
+    background: rgba(222, 222, 222, 0.26); /* lighter so page is still visible */
     z-index: 50;
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+
 }
 
+.z-50 .ReactCrop {
+    max-width: 100%;
+    max-height: 50vh;
+    margin: 10px 0;
+}
+
+.z-50 .ReactCrop img {
+    max-height: 50vh;
+    width: auto;
+    max-width: 100%;
+    border-radius: 6px;
+}
 
 .modal-backdrop {
     inset: 0;
-    background: rgba(247, 230, 253, 0.15); /* lighter so page is still visible */
+    background: rgba(247, 230, 253, 0.15);
     z-index: 9998;
 }
 
-
-/* Main Modal Container - SIMPLE CENTERING */
 .photo-modal-container {
     position: fixed;
     top: 15%;
@@ -52,24 +65,22 @@
     height: 100%;
 }
 
-/* Image Section */
 .image-section-wrapper {
-    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
+    position: relative;
+    overflow: hidden;
 }
 
 .modal-main-image {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
+    display: block;
 }
 
-/* Comments Section */
 .comments-section-wrapper {
     width: 350px;
     display: flex;
@@ -113,47 +124,62 @@
     object-fit: cover;
 }
 
-/* Photo Caption */
 .photo-caption-section {
     padding: 16px;
     border-bottom: 1px solid #f0f0f0;
     background: #fafafa;
 }
 
-.caption-user-info {
+.comment-user-info {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 8px;
+    margin-bottom: 6px;
 }
 
-.caption-content {
-    flex: 1;
+.user-details {
+    display: flex;
+    flex-direction: column;
 }
 
-.caption-username {
+.user-name-text {
     color: #262626;
     font-weight: 600;
-    font-size: 0.9rem;
-    margin-bottom: 4px;
-    display: block;
+    font-size: 0.85rem;
+    line-height: 1.2;
 }
 
-.caption-text {
+.user-username-text {
+    color: #8e8e8e;
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.user-avatar-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.comment-content-wrapper {
+    margin-left: 40px;
+}
+
+.comment-content {
     color: #262626;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     line-height: 1.4;
-    margin: 0;
+    margin: 0 0 4px 0;
     word-break: break-word;
 }
 
-/* Comments List */
 .comments-list-container {
     flex: 1;
     overflow-y: auto;
     padding: 0;
 }
 
-/* Comment Items */
 .comment-item {
     padding: 12px 16px;
     border-bottom: 1px solid #f0f0f0;
@@ -185,7 +211,7 @@
 }
 
 .comment-content-wrapper {
-    margin-left: 40px; /* Align with user avatar */
+    margin-left: 40px;
 }
 
 .comment-content {
@@ -422,36 +448,159 @@
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+
+    .z-50 {
+        top: 55%;
+        left: 50%;
+        background: rgba(222, 222, 222, 0.26);
+        z-index: 50;
+
+    }
+
     .photo-modal-container {
-        width: 95%;
-        height: 90%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        border-radius: 0;
         flex-direction: column;
     }
 
     .modal-content-wrapper {
         flex-direction: column;
+        height: 100%;
     }
 
-    .image-section-wrapper {
-        flex: 0 0 50%;
+    .modal-main-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
     }
 
     .comments-section-wrapper {
         width: 100%;
-        flex: 0 0 50%;
+        flex: 0 0 45%;
+        min-width: auto;
         border-left: none;
         border-top: 1px solid #dbdbdb;
+        display: flex;
+        flex-direction: column;
+        max-height: 45vh;
+    }
+    .photo-caption-section {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f0f0f0;
+        background: #fafafa;
+        flex-shrink: 0;
     }
 
-    .character-counter {
-        padding: 0 8px;
+    .comment-user-info {
+        gap: 6px;
+        margin-bottom: 4px;
+    }
+
+    .user-avatar-img {
+        width: 28px;
+        height: 28px;
+    }
+
+    .user-name-text {
+        font-size: 0.8rem;
+    }
+
+    .user-username-text {
+        font-size: 0.7rem;
     }
 
     .comment-content-wrapper {
-        margin-left: 36px;
+        margin-left: 34px;
+    }
+
+    .comment-content {
+        font-size: 0.8rem;
+        line-height: 1.3;
+    }
+
+    .comments-list-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+        min-height: 0;
+    }
+
+    .comment-item {
+        padding: 10px 16px;
+        border-bottom: 1px solid #f0f0f0;
     }
 
     .comment-date {
-        margin-left: 36px;
+        margin-left: 34px;
+        font-size: 0.7rem;
+    }
+
+    .add-comment-section {
+        padding: 12px 16px;
+        border-top: 1px solid #dbdbdb;
+        background: white;
+        flex-shrink: 0;
+    }
+
+    .comment-input-wrapper {
+        gap: 8px;
+    }
+
+    .comment-input-field {
+        padding: 10px 14px;
+        font-size: 0.85rem;
+    }
+
+    .send-comment-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .character-counter {
+        margin-top: 6px;
+        font-size: 0.75rem;
+    }
+
+    .nav-btn {
+        width: 40px;
+        height: 40px;
+        bottom: 20px;
+        top: auto;
+        transform: none;
+    }
+
+    .prev-btn {
+        top: 25%;
+    }
+
+    .next-btn {
+        top: 25%;
+    }
+
+    .tags-container {
+        bottom: 10px;
+        left: 10px;
+    }
+
+    .tag {
+        padding: 4px 8px;
+        font-size: 0.7rem;
+    }
+
+    @media (max-height: 700px) {
+        .comments-section-wrapper {
+            flex: 0 0 50%;
+            max-height: 50vh;
+        }
+
+        .image-section-wrapper {
+            flex: 1;
+        }
     }
 }

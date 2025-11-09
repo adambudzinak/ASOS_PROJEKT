@@ -29,7 +29,7 @@ interface PhotoModalProps {
 
 // Constants
 const MAX_COMMENT_LENGTH = 100;
-const MAX_COMMENT_DISPLAY_LENGTH = 20; // Characters to show before truncating
+const MAX_COMMENT_DISPLAY_LENGTH = 20;
 
 const PhotoModal: React.FC<PhotoModalProps> = ({
                                                    isOpen,
@@ -43,6 +43,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
     const [loading, setLoading] = useState(false);
     const [token, setToken] = useState<string>("");
     const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+    const [currentPhotoData, setCurrentPhotoData] = useState<any>(null);
     const commentsEndRef = useRef<HTMLDivElement>(null);
 
     const currentPhoto = photos[currentIndex];
@@ -60,21 +61,38 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
         setCurrentIndex(initialIndex);
     }, [initialIndex]);
 
+    // Fetch photo details when photo changes
     useEffect(() => {
         if (isOpen && currentPhoto && token) {
+            fetchPhotoDetails();
             fetchComments();
         }
     }, [isOpen, currentPhoto, token]);
 
-    // Auto-scroll to bottom when new comments are added
-    useEffect(() => {
-        if (comments.length > 0) {
-            commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const fetchPhotoDetails = async () => {
+        if (!token || !currentPhoto) return;
+
+        try {
+            // If current photo already has user data, use it
+            if (currentPhoto.user) {
+                setCurrentPhotoData(currentPhoto);
+                return;
+            }
+
+            // Otherwise, fetch photo details from the backend
+            const response = await axios.get(`/api/photo/${currentPhoto.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setCurrentPhotoData(response.data.photo);
+        } catch (err: any) {
+            console.error("Failed to fetch photo details", err);
+            // Fallback to current photo data even without user info
+            setCurrentPhotoData(currentPhoto);
         }
-    }, [comments]);
+    };
 
     const fetchComments = async () => {
-        if (!token) return;
+        if (!token || !currentPhoto) return;
 
         try {
             const response = await axios.get(`/api/photo/${currentPhoto.id}/comments`, {
@@ -90,10 +108,16 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
         }
     };
 
-    const handleAddComment = async () => {
-        if (!newComment.trim() || !token) return;
+    // Auto-scroll to bottom when new comments are added
+    useEffect(() => {
+        if (comments.length > 0) {
+            commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [comments]);
 
-        // Client-side validation
+    const handleAddComment = async () => {
+        if (!newComment.trim() || !token || !currentPhoto) return;
+
         if (newComment.length > MAX_COMMENT_LENGTH) {
             alert(`Comment too long. Maximum ${MAX_COMMENT_LENGTH} characters allowed.`);
             return;
@@ -122,7 +146,6 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                 localStorage.removeItem('token');
                 window.location.reload();
             } else if (err.response?.status === 400) {
-                // Show backend validation error
                 alert(err.response.data.message);
             }
         } finally {
@@ -139,7 +162,6 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
 
     const handleCommentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        // Only update if within limit or if user is deleting characters
         if (value.length <= MAX_COMMENT_LENGTH || value.length < newComment.length) {
             setNewComment(value);
         }
@@ -187,9 +209,20 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
     if (!isOpen) return null;
     if (typeof document === "undefined") return null;
 
+    // Safe user data extraction with better fallbacks
+    const displayUser = currentPhotoData?.user || {
+        fname: "Unknown",
+        lname: "User",
+        username: "unknown",
+        avatar: null
+    };
+
+    const userDisplayName = `${displayUser.fname} ${displayUser.lname}`;
+    const userUsername = `@${displayUser.username}`;
+
     return createPortal(
         <AnimatePresence>
-            {isOpen && (
+            {isOpen && currentPhoto && (
                 <>
                     <motion.div
                         className="modal-backdrop"
@@ -206,7 +239,6 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                         exit={{ opacity: 0, scale: 0.9 }}
                         onClick={e => e.stopPropagation()}
                     >
-                        {/* Close Button */}
                         <button
                             className="close-btn"
                             onClick={onClose}
@@ -215,7 +247,6 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                             ×
                         </button>
 
-                        {/* Navigation Arrows */}
                         {photos.length > 1 && (
                             <>
                                 <button className="nav-btn prev-btn" onClick={prevPhoto}>
@@ -232,7 +263,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                             <div className="image-section-wrapper">
                                 <img
                                     src={currentPhoto?.url}
-                                    alt={`Photo`}
+                                    alt={`Photo by ${userDisplayName}`}
                                     className="modal-main-image"
                                 />
                                 {currentPhoto?.photoTags?.length > 0 && (
@@ -248,22 +279,31 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
 
                             {/* Comments Section */}
                             <div className="comments-section-wrapper">
-                                {/* Photo Caption - Only this section for author info */}
+                                {/* Photo Caption */}
                                 <div className="photo-caption-section">
-                                    <div className="caption-user-info">
+                                    <div className="comment-user-info">
                                         <img
-                                            src={currentPhoto?.user?.avatar || "/stock-profile-pic.png"}
-                                            alt={currentPhoto?.user?.username}
+                                            src={displayUser.avatar || "/default-avatar.png"}
+                                            alt={userDisplayName}
                                             className="user-avatar-img"
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.src = "/default-avatar.png";
+                                            }}
                                         />
-                                        <div className="caption-content">
-                                            <span className="caption-username">
-                                                {currentPhoto?.user?.fname} {currentPhoto?.user?.lname}
+                                        <div className="user-details">
+                                            <span className="user-name-text">
+                                                {userDisplayName}
                                             </span>
-                                            <p className="caption-text">
-                                                {currentPhoto?.description || "Shared a photo"}
-                                            </p>
+                                            <span className="user-username-text">
+                                                {userUsername}
+                                            </span>
                                         </div>
+                                    </div>
+                                    <div className="comment-content-wrapper">
+                                        <p className="comment-content">
+                                            {currentPhoto?.description || "Shared a photo"}
+                                        </p>
                                     </div>
                                 </div>
 
@@ -284,9 +324,13 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                                                 <div key={comment.id} className="comment-item">
                                                     <div className="comment-user-info">
                                                         <img
-                                                            src={comment.user.avatar || "/stock-profile-pic.png"}
-                                                            alt={comment.user.username}
+                                                            src={comment.user.avatar || "/default-avatar.png"}
+                                                            alt={`${comment.user.fname} ${comment.user.lname}`}
                                                             className="user-avatar-img"
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.src = "/default-avatar.png";
+                                                            }}
                                                         />
                                                         <div className="user-details">
                                                             <span className="user-name-text">
@@ -342,7 +386,6 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                                             <Send size={18} />
                                         </button>
                                     </div>
-                                    {/* Character Counter */}
                                     <div className="character-counter">
                                         <span className={isCommentTooLong ? 'counter-error' : 'counter-normal'}>
                                             {newComment.length}/{MAX_COMMENT_LENGTH}
