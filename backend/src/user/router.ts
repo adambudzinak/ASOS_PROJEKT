@@ -23,6 +23,8 @@ import {
     deleteComment
 } from "./controller/comment";
 
+import { getPhotoById } from "./controller/photo";
+
 const router = Router()
 const upload = multer({ storage });
 
@@ -40,6 +42,7 @@ router.post("/unfollow", unfollowUser);
 router.get("/followers/:userId", getFollowers);
 router.get("/following/:userId", getFollowing);
 router.get("/follow-status/:userId", checkFollowStatus);
+router.get("/photo/:photoId", getPhotoById);
 
 router.get("/photo/:photoId/comments", getComments);
 router.post("/comment", addComment);

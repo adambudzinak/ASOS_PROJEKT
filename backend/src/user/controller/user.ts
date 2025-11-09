@@ -45,6 +45,13 @@ export async function getUserData(req: AuthenticatedRequest, res: Response, next
         const photosWithUrls = user.photos.map(photo => ({
             ...photo,
             url: `${baseUrl}/uploads/${photo.filename}`,
+            user: {
+                id: user.id,
+                username: user.username,
+                fname: user.fname,
+                lname: user.lname,
+                avatar: user.avatar
+            }
         }));
 
         res.status(200).json({
@@ -158,6 +165,13 @@ export async function getUserByUsername(req: AuthenticatedRequest, res: Response
         const photosWithUrls = user.photos.map(photo => ({
             ...photo,
             url: `${baseUrl}/uploads/${photo.filename}`,
+            user: {
+                id: user.id,
+                username: user.username,
+                fname: user.fname,
+                lname: user.lname,
+                avatar: user.avatar
+            }
         }));
 
         const isFollowing = await prisma.follow.findUnique({
