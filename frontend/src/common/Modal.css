@@ -82,7 +82,7 @@
 }
 
 .comments-section-wrapper {
-    width: 350px;
+    width: 400px;
     display: flex;
     flex-direction: column;
     border-left: 1px solid #dbdbdb;
