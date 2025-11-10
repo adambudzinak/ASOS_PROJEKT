@@ -225,7 +225,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
             {isOpen && currentPhoto && (
                 <>
                     <motion.div
-                        className="modal-backdrop"
+                        className="imagecrop-overlay"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -237,6 +237,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
+                        transformTemplate={({ x, y, scale }) => `translate(-50%, -50%) scale(${scale})`}
                         onClick={e => e.stopPropagation()}
                     >
                         <button
