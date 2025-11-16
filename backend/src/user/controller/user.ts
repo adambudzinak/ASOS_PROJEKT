@@ -35,7 +35,8 @@ export async function getUserData(req: AuthenticatedRequest, res: Response, next
                     }
                 },
                 followers: true,
-                following: true
+                following: true,
+                reposts: true
             },
         });
 
@@ -58,7 +59,8 @@ export async function getUserData(req: AuthenticatedRequest, res: Response, next
             ...user,
             photos: photosWithUrls,
             followers: user.followers.length,
-            following: user.following.length
+            following: user.following.length,
+            repostsCount: user.reposts.length
         });
     } catch (error) {
         next(error)
@@ -155,7 +157,8 @@ export async function getUserByUsername(req: AuthenticatedRequest, res: Response
                     }
                 },
                 followers: true,
-                following: true
+                following: true,
+                reposts: true
             },
         });
 
@@ -188,6 +191,7 @@ export async function getUserByUsername(req: AuthenticatedRequest, res: Response
             photos: photosWithUrls,
             followers: user.followers.length,
             following: user.following.length,
+            repostsCount: user.reposts.length,
             isFollowing: !!isFollowing
         });
     } catch (error) {

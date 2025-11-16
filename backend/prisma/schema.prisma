@@ -25,6 +25,7 @@ model User {
   followers Follow[]  @relation("UserFollowers")
   following Follow[]  @relation("UserFollowing")
   Comment   Comment[]
+  reposts   Repost[]
 }
 
 model Photo {
@@ -35,6 +36,7 @@ model Photo {
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   photoTags PhotoTag[]
   comments  Comment[]
+  reposts   Repost[]
 }
 
 model Tag {
@@ -76,5 +78,19 @@ model Comment {
   photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([photoId])
+}
+
+model Repost {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  userId    String
+  photoId   String
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, photoId])
+  @@index([userId])
   @@index([photoId])
 }

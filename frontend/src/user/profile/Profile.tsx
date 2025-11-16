@@ -15,6 +15,8 @@ interface ProfileProps {
     token: string;
 }
 
+type PhotoViewType = "personal" | "reposted";
+
 const Profile: React.FC<ProfileProps> = ({token}) => {
     const [userId, setUserId] = useState("");
     const [username, setUsername] = useState("");
@@ -28,6 +30,8 @@ const Profile: React.FC<ProfileProps> = ({token}) => {
     const [modalOpen, setModalOpen] = useState(false);
 
     const [photos, setPhotos] = useState<any[]>([]);
+    const [repostedPhotos, setRepostedPhotos] = useState<any[]>([]);
+    const [photoView, setPhotoView] = useState<PhotoViewType>("personal");
 
     const [modalFor, setModalFor] = useState<"avatar" | "photo" | null>(null);
     const [photoModalOpen, setPhotoModalOpen] = useState(false);
@@ -51,6 +55,10 @@ const Profile: React.FC<ProfileProps> = ({token}) => {
 
     const closePhotoModal = () => {
         setPhotoModalOpen(false);
+        // Refresh reposted photos when modal closes (in case user unreposted something)
+        if (photoView === "reposted") {
+            fetchRepostedPhotos();
+        }
     };
 
     const fetchUserData = async () => {
@@ -68,15 +76,38 @@ const Profile: React.FC<ProfileProps> = ({token}) => {
             setFollowing(user.following || 0);
             setPosts(user.photos.length || 0);
             setAvatarUrl(user.avatar || "/stock-profile-pic.png");
-            if (user.photos) setPhotos(user.photos.map((p: any) => ({id: p.id, url: p.url, photoTags: p.photoTags || []})));
+            if (user.photos) setPhotos(user.photos.map((p: any) => ({id: p.id, url: p.url, photoTags: p.photoTags || [], user: p.user})));
         } catch (err: any) {
             console.error(err);
+        }
+    };
+
+    const fetchRepostedPhotos = async () => {
+        try {
+            const response = await axios.get(`/api/reposts/${userId}`, {
+                headers: {Authorization: `Bearer ${token}`}
+            });
+            setRepostedPhotos(response.data.repostedPhotos.map((p: any) => ({
+                id: p.id,
+                url: p.url,
+                photoTags: p.photoTags || [],
+                user: p.user,
+                repostedAt: p.repostedAt
+            })));
+        } catch (err: any) {
+            console.error("Failed to fetch reposted photos", err);
         }
     };
 
     useEffect(() => {
         fetchUserData();
     }, [token]);
+
+    useEffect(() => {
+        if (userId && photoView === "reposted") {
+            fetchRepostedPhotos();
+        }
+    }, [userId, photoView]);
 
     const handleAvatarUpdate = async (newImage: string | File, tags?: string) => {
         if (modalFor === "avatar") {
@@ -128,6 +159,21 @@ const Profile: React.FC<ProfileProps> = ({token}) => {
         }
     };
 
+    const handleUnrepost = async (photoId: string) => {
+        try {
+            await axios.post(
+                "/api/unrepost",
+                { photoId },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setRepostedPhotos(repostedPhotos.filter((p) => p.id !== photoId));
+        } catch (err) {
+            console.error("Failed to unrepost photo", err);
+        }
+    };
+
+    const displayedPhotos = photoView === "personal" ? photos : repostedPhotos;
+
     return (
         <>
             <div className="home-blurred-card d-flex flex-column align-items-center p-4 mb-4">
@@ -177,11 +223,62 @@ const Profile: React.FC<ProfileProps> = ({token}) => {
                         </div>
                     </div>
                 </div>
+
+                {/* Photo View Toggle */}
+                <div className="photo-view-toggle" style={{
+                    display: 'flex',
+                    gap: '0',
+                    marginTop: '20px',
+                    marginBottom: '20px',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    borderRadius: '12px',
+                    padding: '4px',
+                    width: '100%',
+                    maxWidth: '400px'
+                }}>
+                    <button
+                        onClick={() => setPhotoView("personal")}
+                        style={{
+                            flex: 1,
+                            padding: '10px 20px',
+                            border: 'none',
+                            borderRadius: '10px',
+                            background: photoView === "personal" ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
+                            color: 'white',
+                            fontWeight: photoView === "personal" ? 600 : 400,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            fontSize: '0.9rem'
+                        }}
+                    >
+                        Personal
+                    </button>
+                    <button
+                        onClick={() => setPhotoView("reposted")}
+                        style={{
+                            flex: 1,
+                            padding: '10px 20px',
+                            border: 'none',
+                            borderRadius: '10px',
+                            background: photoView === "reposted" ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
+                            color: 'white',
+                            fontWeight: photoView === "reposted" ? 600 : 400,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            fontSize: '0.9rem'
+                        }}
+                    >
+                        Reposted
+                    </button>
+                </div>
+
                 <div className="profile-gallery">
-                    <div className="gallery-item add-photo" onClick={() => openModal("photo")}>
-                        <span style={{fontSize: "2rem", fontWeight: "bold"}}>+</span>
-                    </div>
-                    {photos.map((photo, idx) => (
+                    {photoView === "personal" && (
+                        <div className="gallery-item add-photo" onClick={() => openModal("photo")}>
+                            <span style={{fontSize: "2rem", fontWeight: "bold"}}>+</span>
+                        </div>
+                    )}
+                    {displayedPhotos.map((photo, idx) => (
                         <div key={idx} className="gallery-item photo-item" onClick={() => openPhotoModal(idx)}
                              style={{position: "relative"}}
                         >
@@ -194,9 +291,14 @@ const Profile: React.FC<ProfileProps> = ({token}) => {
                                 className="delete-photo-btn"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    setPhotoToDelete(photo.id);
-                                    setConfirmOpen(true);
+                                    if (photoView === "personal") {
+                                        setPhotoToDelete(photo.id);
+                                        setConfirmOpen(true);
+                                    } else {
+                                        handleUnrepost(photo.id);
+                                    }
                                 }}
+                                title={photoView === "personal" ? "Delete photo" : "Remove repost"}
                             >
                                 <X size={18}/>
                             </button>
@@ -223,8 +325,9 @@ const Profile: React.FC<ProfileProps> = ({token}) => {
                     <PhotoModal
                         isOpen={photoModalOpen}
                         onClose={closePhotoModal}
-                        photos={photos}
+                        photos={displayedPhotos}
                         initialIndex={currentPhotoIndex}
+                        currentUserId={userId}
                     />,
                     document.body
                 )

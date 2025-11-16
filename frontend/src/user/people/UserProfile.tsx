@@ -12,17 +12,22 @@ interface UserProfileProps {
     onBack: () => void;
 }
 
+type PhotoViewType = "personal" | "reposted";
+
 const UserProfile: React.FC<UserProfileProps> = ({token, username, onBack}) => {
     const [userId, setUserId] = useState("");
+    const [currentUserId, setCurrentUserId] = useState("");
     const [fname, setFname] = useState("");
     const [lname, setLname] = useState("");
     const [avatarUrl, setAvatarUrl] = useState("/stock-profile-pic.png");
     const [photos, setPhotos] = useState<any[]>([]);
+    const [repostedPhotos, setRepostedPhotos] = useState<any[]>([]);
     const [posts, setPosts] = useState(0);
     const [followers, setFollowers] = useState<number>(0);
     const [following, setFollowing] = useState<number>(0);
     const [isFollowing, setIsFollowing] = useState(false);
     const [loadingFollow, setLoadingFollow] = useState(false);
+    const [photoView, setPhotoView] = useState<PhotoViewType>("personal");
 
     const [photoModalOpen, setPhotoModalOpen] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
@@ -34,7 +39,14 @@ const UserProfile: React.FC<UserProfileProps> = ({token, username, onBack}) => {
         setCurrentPhotoIndex(index);
         setPhotoModalOpen(true);
     };
-    const closePhotoModal = () => setPhotoModalOpen(false);
+
+    const closePhotoModal = () => {
+        setPhotoModalOpen(false);
+        // Refresh reposted photos when modal closes
+        if (photoView === "reposted") {
+            fetchRepostedPhotos();
+        }
+    };
 
     const fetchUserProfile = async () => {
         try {
@@ -51,7 +63,12 @@ const UserProfile: React.FC<UserProfileProps> = ({token, username, onBack}) => {
             setAvatarUrl(user.avatar || "/stock-profile-pic.png");
             setIsFollowing(user.isFollowing || false);
             if (user.photos) {
-                setPhotos(user.photos.map((p: any) => ({id: p.id, url: p.url, photoTags: p.photoTags || []})));
+                setPhotos(user.photos.map((p: any) => ({
+                    id: p.id,
+                    url: p.url,
+                    photoTags: p.photoTags || [],
+                    user: p.user
+                })));
                 setPosts(user.photos.length);
             }
         } catch (err) {
@@ -59,9 +76,46 @@ const UserProfile: React.FC<UserProfileProps> = ({token, username, onBack}) => {
         }
     };
 
+    const fetchRepostedPhotos = async () => {
+        try {
+            const response = await axios.get(`/api/reposts/${userId}`, {
+                headers: {Authorization: `Bearer ${token}`}
+            });
+            setRepostedPhotos(response.data.repostedPhotos.map((p: any) => ({
+                id: p.id,
+                url: p.url,
+                photoTags: p.photoTags || [],
+                user: p.user,
+                repostedAt: p.repostedAt
+            })));
+        } catch (err: any) {
+            console.error("Failed to fetch reposted photos", err);
+        }
+    };
+
+    const fetchCurrentUserId = async () => {
+        try {
+            const response = await axios.get("/api/get-user", {
+                headers: {Authorization: `Bearer ${token}`}
+            });
+            setCurrentUserId(response.data.id);
+        } catch (err) {
+            console.error("Failed to fetch current user", err);
+        }
+    };
+
     useEffect(() => {
-        if (username) fetchUserProfile();
+        if (username) {
+            fetchUserProfile();
+            fetchCurrentUserId();
+        }
     }, [username]);
+
+    useEffect(() => {
+        if (userId && photoView === "reposted") {
+            fetchRepostedPhotos();
+        }
+    }, [userId, photoView]);
 
     const handleFollowToggle = async () => {
         try {
@@ -82,6 +136,8 @@ const UserProfile: React.FC<UserProfileProps> = ({token, username, onBack}) => {
             setLoadingFollow(false);
         }
     };
+
+    const displayedPhotos = photoView === "personal" ? photos : repostedPhotos;
 
     return (
         <>
@@ -142,10 +198,58 @@ const UserProfile: React.FC<UserProfileProps> = ({token, username, onBack}) => {
                     </div>
                 </div>
 
+                {/* Photo View Toggle */}
+                <div className="photo-view-toggle" style={{
+                    display: 'flex',
+                    gap: '0',
+                    marginTop: '20px',
+                    marginBottom: '20px',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    borderRadius: '12px',
+                    padding: '4px',
+                    width: '100%',
+                    maxWidth: '400px'
+                }}>
+                    <button
+                        onClick={() => setPhotoView("personal")}
+                        style={{
+                            flex: 1,
+                            padding: '10px 20px',
+                            border: 'none',
+                            borderRadius: '10px',
+                            background: photoView === "personal" ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
+                            color: 'white',
+                            fontWeight: photoView === "personal" ? 600 : 400,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            fontSize: '0.9rem'
+                        }}
+                    >
+                        Personal
+                    </button>
+                    <button
+                        onClick={() => setPhotoView("reposted")}
+                        style={{
+                            flex: 1,
+                            padding: '10px 20px',
+                            border: 'none',
+                            borderRadius: '10px',
+                            background: photoView === "reposted" ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
+                            color: 'white',
+                            fontWeight: photoView === "reposted" ? 600 : 400,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            fontSize: '0.9rem'
+                        }}
+                    >
+                        Reposted
+                    </button>
+                </div>
+
                 <div className="profile-gallery">
-                    {photos.map((photo, idx) => (
+                    {displayedPhotos.map((photo, idx) => (
                         <div key={idx} className="gallery-item photo-item" onClick={() => openPhotoModal(idx)}
-                            style={{position: "relative"}}
+                             style={{position: "relative"}}
                         >
                             <img
                                 src={photo.url}
@@ -163,8 +267,9 @@ const UserProfile: React.FC<UserProfileProps> = ({token, username, onBack}) => {
                     <PhotoModal
                         isOpen={photoModalOpen}
                         onClose={closePhotoModal}
-                        photos={photos}
+                        photos={displayedPhotos}
                         initialIndex={currentPhotoIndex}
+                        currentUserId={currentUserId}
                     />,
                     document.body
                 )}

@@ -22,6 +22,12 @@ import {
     addComment,
     deleteComment
 } from "./controller/comment";
+import {
+    repostPhoto,
+    unrepostPhoto,
+    checkRepostStatus,
+    getRepostedPhotos
+} from "./controller/repost";
 
 import { getPhotoById } from "./controller/photo";
 
@@ -47,5 +53,10 @@ router.get("/photo/:photoId", getPhotoById);
 router.get("/photo/:photoId/comments", getComments);
 router.post("/comment", addComment);
 router.delete("/comment/:commentId", deleteComment);
+
+router.post("/repost", repostPhoto);
+router.post("/unrepost", unrepostPhoto);
+router.get("/repost-status/:photoId", checkRepostStatus);
+router.get("/reposts/:userId", getRepostedPhotos);
 
 export default router

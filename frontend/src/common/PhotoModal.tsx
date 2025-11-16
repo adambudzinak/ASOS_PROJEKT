@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Send } from "lucide-react";
+import { ChevronLeft, ChevronRight, Send, Repeat2 } from "lucide-react";
 import "./Modal.css";
 import axios from "../auth/CrossOrigin";
 
@@ -25,6 +25,7 @@ interface PhotoModalProps {
     onClose: () => void;
     photos: any[];
     initialIndex: number;
+    currentUserId?: string;
 }
 
 // Constants
@@ -35,7 +36,8 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                                                    isOpen,
                                                    onClose,
                                                    photos,
-                                                   initialIndex
+                                                   initialIndex,
+                                                   currentUserId
                                                }) => {
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [comments, setComments] = useState<Comment[]>([]);
@@ -44,10 +46,13 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
     const [token, setToken] = useState<string>("");
     const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
     const [currentPhotoData, setCurrentPhotoData] = useState<any>(null);
+    const [isReposted, setIsReposted] = useState(false);
+    const [repostLoading, setRepostLoading] = useState(false);
     const commentsEndRef = useRef<HTMLDivElement>(null);
 
     const currentPhoto = photos[currentIndex];
     const isCommentTooLong = newComment.length > MAX_COMMENT_LENGTH;
+    const isOwnPhoto = currentUserId && currentPhotoData?.user?.id === currentUserId;
 
     // Get token from localStorage
     useEffect(() => {
@@ -66,6 +71,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
         if (isOpen && currentPhoto && token) {
             fetchPhotoDetails();
             fetchComments();
+            checkRepostStatus();
         }
     }, [isOpen, currentPhoto, token]);
 
@@ -73,20 +79,17 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
         if (!token || !currentPhoto) return;
 
         try {
-            // If current photo already has user data, use it
             if (currentPhoto.user) {
                 setCurrentPhotoData(currentPhoto);
                 return;
             }
 
-            // Otherwise, fetch photo details from the backend
             const response = await axios.get(`/api/photo/${currentPhoto.id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setCurrentPhotoData(response.data.photo);
         } catch (err: any) {
             console.error("Failed to fetch photo details", err);
-            // Fallback to current photo data even without user info
             setCurrentPhotoData(currentPhoto);
         }
     };
@@ -105,6 +108,51 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                 localStorage.removeItem('token');
                 window.location.reload();
             }
+        }
+    };
+
+    const checkRepostStatus = async () => {
+        if (!token || !currentPhoto || isOwnPhoto) return;
+
+        try {
+            const response = await axios.get(`/api/repost-status/${currentPhoto.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setIsReposted(response.data.isReposted);
+        } catch (err: any) {
+            console.error("Failed to check repost status", err);
+        }
+    };
+
+    const handleRepostToggle = async () => {
+        if (!token || !currentPhoto || isOwnPhoto) return;
+
+        try {
+            setRepostLoading(true);
+            const endpoint = isReposted ? "/api/unrepost" : "/api/repost";
+
+            const response = await axios.post(
+                endpoint,
+                { photoId: currentPhoto.id },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            setIsReposted(response.data.isReposted);
+        } catch (err: any) {
+            console.error("Failed to toggle repost", err);
+            if (err.response?.status === 401) {
+                localStorage.removeItem('token');
+                window.location.reload();
+            } else if (err.response?.data?.message) {
+                alert(err.response.data.message);
+            }
+        } finally {
+            setRepostLoading(false);
         }
     };
 
@@ -306,6 +354,43 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                                             {currentPhoto?.description || "Shared a photo"}
                                         </p>
                                     </div>
+
+                                    {/* Repost Button - Only show if not own photo */}
+                                    {!isOwnPhoto && token && (
+                                        <button
+                                            onClick={handleRepostToggle}
+                                            disabled={repostLoading}
+                                            className="repost-btn"
+                                            style={{
+                                                marginTop: '12px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                padding: '8px 16px',
+                                                background: isReposted ? 'rgba(37, 117, 252, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                                border: 'none',
+                                                borderRadius: '20px',
+                                                color: isReposted ? '#2575fc' : '#8e8e8e',
+                                                cursor: repostLoading ? 'not-allowed' : 'pointer',
+                                                fontSize: '0.85rem',
+                                                fontWeight: isReposted ? 600 : 400,
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                if (!repostLoading) {
+                                                    e.currentTarget.style.background = isReposted ? 'rgba(37, 117, 252, 0.3)' : 'rgba(255, 255, 255, 0.1)';
+                                                }
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (!repostLoading) {
+                                                    e.currentTarget.style.background = isReposted ? 'rgba(37, 117, 252, 0.2)' : 'rgba(255, 255, 255, 0.05)';
+                                                }
+                                            }}
+                                        >
+                                            <Repeat2 size={18} />
+                                            {repostLoading ? 'Loading...' : isReposted ? 'Reposted' : 'Repost'}
+                                        </button>
+                                    )}
                                 </div>
 
                                 {/* Comments List */}
