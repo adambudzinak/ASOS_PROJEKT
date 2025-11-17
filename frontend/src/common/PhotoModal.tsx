@@ -1,9 +1,10 @@
 import { createPortal } from "react-dom";
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Send, Repeat2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Send, Repeat2, ThumbsUp, Heart, Smile, Users } from "lucide-react";
 import "./Modal.css";
 import axios from "../auth/CrossOrigin";
+import ReactionsModal from "./ReactionsModal";
 
 interface User {
     id: string;
@@ -50,6 +51,18 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
     const [repostLoading, setRepostLoading] = useState(false);
     const commentsEndRef = useRef<HTMLDivElement>(null);
 
+    const [likeCount, setLikeCount] = useState<number>(0);
+    const [isLikedState, setIsLikedState] = useState<boolean>(false);
+    const [heartCount, setHeartCount] = useState<number>(0);
+    const [isHeartState, setIsHeartState] = useState<boolean>(false);
+    const [smileCount, setSmileCount] = useState<number>(0);
+    const [isSmileState, setIsSmileState] = useState<boolean>(false);
+    const [likeLoading, setLikeLoading] = useState<boolean>(false);
+    const [heartLoading, setHeartLoading] = useState<boolean>(false);
+    const [smileLoading, setSmileLoading] = useState<boolean>(false);
+
+    const [openReactions, setOpenReactions] = useState(false);
+
     const currentPhoto = photos[currentIndex];
     const isCommentTooLong = newComment.length > MAX_COMMENT_LENGTH;
     const isOwnPhoto = currentUserId && currentPhotoData?.user?.id === currentUserId;
@@ -66,14 +79,63 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
         setCurrentIndex(initialIndex);
     }, [initialIndex]);
 
+    // When currentPhotoData changes, initialize like state if available
+    useEffect(() => {
+        if (currentPhotoData) {
+            setLikeCount(Number(currentPhotoData.likesCount || 0));
+            const likedByCurrentUser = currentPhotoData?.likes?.some((reaction: { user: { id: string | undefined; }; reactionType: string; }) => 
+                    reaction.user.id === currentUserId && reaction.reactionType === "like")
+            setIsLikedState(likedByCurrentUser)
+            setHeartCount(Number(currentPhotoData.heartCount || 0));
+            const heartByCurrentUser = currentPhotoData?.likes?.some((reaction: { user: { id: string | undefined; }; reactionType: string; }) => 
+                    reaction.user.id === currentUserId && reaction.reactionType === "heart")
+            setIsHeartState(heartByCurrentUser)
+            setSmileCount(Number(currentPhotoData.smileCount || 0));
+            const smileByCurrentUser = currentPhotoData?.likes?.some((reaction: { user: { id: string | undefined; }; reactionType: string; }) => 
+                    reaction.user.id === currentUserId && reaction.reactionType === "smile")
+            setIsSmileState(smileByCurrentUser)
+        }
+    }, [currentPhotoData]);
+
     // Fetch photo details when photo changes
     useEffect(() => {
         if (isOpen && currentPhoto && token) {
             fetchPhotoDetails();
             fetchComments();
             checkRepostStatus();
+            fetchReactions();
         }
     }, [isOpen, currentPhoto, token]);
+
+    const fetchReactions = async () => {
+        if (!token || !currentPhoto) return;
+
+        try {
+            const response = await axios.get(`/api/reactions/${currentPhoto.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setLikeCount(Number(response.data.reactions.likesCount || 0));
+            const likedByCurrentUser = response.data.reactions?.likes?.some(
+                (reaction: { user: { id: string | undefined; }; reactionType: string; }) => 
+                    reaction.user.id === currentUserId && reaction.reactionType === "like"
+            );
+            setIsLikedState(likedByCurrentUser);
+            setHeartCount(Number(response.data.reactions.heartCount || 0));
+            const heartByCurrentUser = response.data.reactions?.likes?.some(
+                (reaction: { user: { id: string | undefined; }; reactionType: string; }) => 
+                    reaction.user.id === currentUserId && reaction.reactionType === "heart"
+            );
+            setIsHeartState(heartByCurrentUser);
+            setSmileCount(Number(response.data.reactions.smileCount || 0));
+            const smileByCurrentUser = response.data.reactions?.likes?.some(
+                (reaction: { user: { id: string | undefined; }; reactionType: string; }) => 
+                    reaction.user.id === currentUserId && reaction.reactionType === "smile"
+            );
+            setIsSmileState(smileByCurrentUser);
+        } catch (err: any) {
+            console.error("Failed to fetch reactions", err);
+        }
+    }
 
     const fetchPhotoDetails = async () => {
         if (!token || !currentPhoto) return;
@@ -155,6 +217,142 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
             setRepostLoading(false);
         }
     };
+
+    // Handle like/unlike toggle 
+    const handleLikeToggle = async () => {
+        if (!currentPhoto || !token) return;
+
+        // Prevent concurrent like/unlike calls
+        if (likeLoading) return;
+
+        setLikeLoading(true);
+
+        const prevLiked = isLikedState;
+        const prevCount = likeCount;
+        try {
+            if (isLikedState) {
+                // optimistic: decrement
+                setIsLikedState(false);
+                setLikeCount(Math.max(0, prevCount - 1));
+
+                const resp = await axios.post(`/api/like/${currentPhoto.id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+                // sync server response if available
+                if (resp.data?.likesCount !== undefined) setLikeCount(Number(resp.data.likesCount));
+                if (resp.data?.isLiked !== undefined) setIsLikedState(Boolean(resp.data.isLiked));
+            } else {
+                // optimistic: increment
+                setIsLikedState(true);
+                setLikeCount(prevCount + 1);
+
+                const resp = await axios.post(`/api/like/${currentPhoto.id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+                if (resp.data?.likesCount !== undefined) setLikeCount(Number(resp.data.likesCount));
+                if (resp.data?.isLiked !== undefined) setIsLikedState(Boolean(resp.data.isLiked));
+            }
+        } catch (err: any) {
+            console.error("Failed to toggle like", err);
+            // rollback optimistic update
+            setIsLikedState(prevLiked);
+            setLikeCount(prevCount);
+
+        } finally {
+            setLikeLoading(false);
+            fetchReactions();
+        }
+    };
+
+    // Handle like/unlike toggle 
+    const handleHeartToggle = async () => {
+        if (!currentPhoto || !token) return;
+
+        // Prevent concurrent like/unlike calls
+        if (heartLoading) return;
+
+        setHeartLoading(true);
+
+        const prevHeart = isHeartState;
+        const prevCount = heartCount;
+        try {
+            if (isHeartState) {
+                // optimistic: decrement
+                setIsHeartState(false);
+                setHeartCount(Math.max(0, prevCount - 1));
+
+                const resp = await axios.post(`/api/heart/${currentPhoto.id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+                // sync server response if available
+                if (resp.data?.likesCount !== undefined) setHeartCount(Number(resp.data.likesCount));
+                if (resp.data?.isLiked !== undefined) setIsHeartState(Boolean(resp.data.isLiked));
+            } else {
+                // optimistic: increment
+                setIsHeartState(true);
+                setHeartCount(prevCount + 1);
+
+                const resp = await axios.post(`/api/heart/${currentPhoto.id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+                if (resp.data?.likesCount !== undefined) setHeartCount(Number(resp.data.likesCount));
+                if (resp.data?.isLiked !== undefined) setIsHeartState(Boolean(resp.data.isLiked));
+            }
+        } catch (err: any) {
+            console.error("Failed to toggle like", err);
+            // rollback optimistic update
+            setIsHeartState(prevHeart);
+            setHeartCount(prevCount);
+
+        } finally {
+            setHeartLoading(false);
+            fetchReactions();
+        }
+    };
+
+    // Handle like/unlike toggle 
+    const handleSmileToggle = async () => {
+        if (!currentPhoto || !token) return;
+
+        // Prevent concurrent like/unlike calls
+        if (smileLoading) return;
+
+        setSmileLoading(true);
+
+        const prevSmile = isSmileState;
+        const prevCount = smileCount;
+        try {
+            if (isSmileState) {
+                // optimistic: decrement
+                setIsSmileState(false);
+                setSmileCount(Math.max(0, prevCount - 1));
+
+                const resp = await axios.post(`/api/smile/${currentPhoto.id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+
+                // sync server response if available
+                if (resp.data?.likesCount !== undefined) setSmileCount(Number(resp.data.likesCount));
+                if (resp.data?.isLiked !== undefined) setIsSmileState(Boolean(resp.data.isLiked));
+            } else {
+                // optimistic: increment
+                setIsSmileState(true);
+                setSmileCount(prevCount + 1);
+
+                const resp = await axios.post(`/api/smile/${currentPhoto.id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+
+                if (resp.data?.likesCount !== undefined) setSmileCount(Number(resp.data.likesCount));
+                if (resp.data?.isLiked !== undefined) setIsSmileState(Boolean(resp.data.isLiked));
+            }
+        } catch (err: any) {
+            console.error("Failed to toggle like", err);
+            // rollback optimistic update
+            setIsSmileState(prevSmile);
+            setSmileCount(prevCount);
+
+        } finally {
+            setSmileLoading(false);
+            fetchReactions();
+        }
+    };
+
+    
 
     // Auto-scroll to bottom when new comments are added
     useEffect(() => {
@@ -484,6 +682,94 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                                     </div>
                                     {!token && (
                                         <p className="login-message">Please log in to comment</p>
+                                    )}
+                                </div>
+
+                                {/*Like Section (placed after add-comment-section) */}
+                                <div className="reactions-section" style={{ paddingBottom: '5px', display: 'flex', alignItems: 'center', gap: '10px', paddingLeft:'16px', paddingRight:'16px' }}>
+                                    <div style={{padding: '8px 8px'}}>
+                                        <button
+                                        className="like-btn"
+                                        onClick={handleLikeToggle}
+                                        disabled={likeLoading || !token}
+                                        style={{
+                                            paddingRight: '3px',
+                                            borderRadius: '20px',
+                                            border: 'none',
+                                            background: 'transparent',
+                                            cursor: likeLoading || !token ? 'not-allowed' : 'pointer',
+                                        }}
+                                        >
+                                            <ThumbsUp
+                                            fill={isLikedState ? 'blue' : 'none'}
+                                            />
+                                        </button>
+                                        <span className="like-count" aria-live="polite" style={{ fontSize: '0.95rem' }}>
+                                            {likeCount}
+                                        </span>
+                                    </div>
+                                    <div style={{padding: '8px 8px'}}>
+                                        <button
+                                        className="heart-btn"
+                                        onClick={handleHeartToggle}
+                                        disabled={heartLoading || !token}
+                                        style={{
+                                            paddingRight: '3px',
+                                            borderRadius: '20px',
+                                            border: 'none',
+                                            background: 'transparent',
+                                            cursor: heartLoading || !token ? 'not-allowed' : 'pointer',
+                                        }}
+                                        >
+                                            <Heart
+                                            fill={isHeartState ? 'red' : 'none'}
+                                            />
+                                        </button>
+                                        <span className="heart-count" aria-live="polite" style={{ fontSize: '0.95rem' }}>
+                                            {heartCount}
+                                        </span>
+                                    </div>
+                                    <div style={{padding: '8px 8px'}}>
+                                        <button
+                                        className="smile-btn"
+                                        onClick={handleSmileToggle}
+                                        disabled={smileLoading || !token}
+                                        style={{
+                                            paddingRight: '3px',
+                                            borderRadius: '20px',
+                                            border: 'none',
+                                            background: 'transparent',
+                                            cursor: smileLoading || !token ? 'not-allowed' : 'pointer',
+                                        }}
+                                        >
+                                            <Smile
+                                            fill={isSmileState ? 'yellow' : 'none'}
+                                            />
+                                        </button>
+                                        <span className="smile-count" aria-live="polite" style={{ fontSize: '0.95rem' }}>
+                                            {smileCount}
+                                        </span>
+                                    </div>
+                                    <div style={{display: "flex", justifySelf: "flex-end"}}>
+                                        <button
+                                        className="reactions-btn"
+                                        onClick={() => setOpenReactions(true)}
+                                        disabled={!token}
+                                        style={{
+                                            paddingRight: '3px',
+                                            borderRadius: '20px',
+                                            border: 'none',
+                                            background: 'transparent',
+                                            cursor: !token ? 'not-allowed' : 'pointer',
+                                        }}
+                                        >
+                                            <Users
+                                            />
+                                        </button>
+                                    </div>
+                                    <ReactionsModal isOpen={openReactions} onClose={() => setOpenReactions(false)} photoId={currentPhoto.id} token={token} />
+                                    {!token && (
+                                        <p className="login-message" style={{ margin: 0 }}>Please log in to like</p>
                                     )}
                                 </div>
                             </div>
