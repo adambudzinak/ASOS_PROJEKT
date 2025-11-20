@@ -31,6 +31,8 @@ import {
 
 import { getPhotoById } from "./controller/photo";
 
+import {like, getReactions, heart, smile} from "./controller/reaction";
+
 const router = Router()
 const upload = multer({ storage });
 
@@ -58,5 +60,10 @@ router.post("/repost", repostPhoto);
 router.post("/unrepost", unrepostPhoto);
 router.get("/repost-status/:photoId", checkRepostStatus);
 router.get("/reposts/:userId", getRepostedPhotos);
+
+router.post("/like/:photoId", like);
+router.post("/heart/:photoId", heart);
+router.post("/smile/:photoId", smile);
+router.get("/reactions/:photoId", getReactions)
 
 export default router

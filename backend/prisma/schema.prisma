@@ -26,6 +26,7 @@ model User {
   following Follow[]  @relation("UserFollowing")
   Comment   Comment[]
   reposts   Repost[]
+  likes     Like[]
 }
 
 model Photo {
@@ -37,6 +38,7 @@ model Photo {
   photoTags PhotoTag[]
   comments  Comment[]
   reposts   Repost[]
+  likes     Like[]
 }
 
 model Tag {
@@ -91,6 +93,21 @@ model Repost {
   photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
 
   @@unique([userId, photoId])
+  @@index([userId])
+  @@index([photoId])
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  userId    String
+  photoId   String
+  reactionType  String  @default("like")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, photoId]) // prevent duplicate likes
   @@index([userId])
   @@index([photoId])
 }

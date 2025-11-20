@@ -110,6 +110,19 @@ export async function getPhotoById(req: AuthenticatedRequest, res: Response, nex
                         }
                     },
                     orderBy: { createdAt: 'asc' }
+                },
+                likes: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                username: true,
+                                fname: true,
+                                lname: true,
+                                avatar: true
+                            }
+                        }
+                    }
                 }
             }
         });
@@ -121,7 +134,8 @@ export async function getPhotoById(req: AuthenticatedRequest, res: Response, nex
         const baseUrl = `${req.protocol}://${req.get("host")}`;
         const photoWithUrl = {
             ...photo,
-            url: `${baseUrl}/uploads/${photo.filename}`
+            url: `${baseUrl}/uploads/${photo.filename}`,
+            likesCount: photo.likes.length
         };
 
         res.status(200).json({ photo: photoWithUrl });
