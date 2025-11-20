@@ -79,6 +79,20 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
         setCurrentIndex(initialIndex);
     }, [initialIndex]);
 
+    useEffect(() => {
+        if (!currentPhotoData || !token) return;
+        fetchReactions();
+    }, [currentPhotoData, token]);
+
+    useEffect(() => {
+        setIsLikedState(false);
+        setLikeCount(0);
+        setIsHeartState(false);
+        setHeartCount(0);
+        setIsSmileState(false);
+        setSmileCount(0);
+    }, [currentIndex]);
+
     // When currentPhotoData changes, initialize like state if available
     useEffect(() => {
         if (currentPhotoData) {
@@ -103,7 +117,6 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
             fetchPhotoDetails();
             fetchComments();
             checkRepostStatus();
-            fetchReactions();
         }
     }, [isOpen, currentPhoto, token]);
 

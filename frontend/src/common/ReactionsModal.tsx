@@ -37,9 +37,6 @@ const iconForType = (type: string) => {
     case "thumbsup":
     case "like":
       return <ThumbsUp size={18} />;
-    case "zap":
-    case "wow":
-      return <Zap size={18} />;
     default:
       return <Heart size={18} />; // fallback
   }
@@ -155,16 +152,13 @@ const ReactionsModal: React.FC<ReactionsModalProps> = ({
               <h3 className="text-white mb-1">Reactions</h3>
               <div style={{ display: "flex", justifyContent: "center", gap: 12, alignItems: "center" }}>
                 <div style={{ color: "white", fontSize: 13 }}>
-                  <Heart size={14} /> <strong style={{ marginLeft: 6 }}>{counts["heart"] || counts["love"] || 0}</strong>
-                </div>
-                <div style={{ color: "white", fontSize: 13 }}>
                   <ThumbsUp size={14} /> <strong style={{ marginLeft: 6 }}>{counts["like"] || counts["thumbsup"] || 0}</strong>
                 </div>
                 <div style={{ color: "white", fontSize: 13 }}>
-                  <Smile size={14} /> <strong style={{ marginLeft: 6 }}>{counts["smile"] || counts["laugh"] || 0}</strong>
+                  <Heart size={14} /> <strong style={{ marginLeft: 6 }}>{counts["heart"] || counts["love"] || 0}</strong>
                 </div>
                 <div style={{ color: "white", fontSize: 13 }}>
-                  <Zap size={14} /> <strong style={{ marginLeft: 6 }}>{counts["zap"] || counts["wow"] || 0}</strong>
+                  <Smile size={14} /> <strong style={{ marginLeft: 6 }}>{counts["smile"] || counts["laugh"] || 0}</strong>
                 </div>
                 <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>
                   Total: <strong style={{ marginLeft: 6 }}>{totalCount}</strong>
