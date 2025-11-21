@@ -9,12 +9,15 @@ interface FeedProps {
     token: string;
 }
 
+type PhotoViewType = "random" | "following";
+
 const Feed: React.FC<FeedProps> = ({ token }) => {
     const [photos, setPhotos] = useState<any[]>([]);
     const [userId, setUserId] = useState("");
     const [loading, setLoading] = useState(true);
     const [photoModalOpen, setPhotoModalOpen] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+    const [photoView, setPhotoView] = useState<PhotoViewType>("random");
 
     const openPhotoModal = (index: number) => {
         setCurrentPhotoIndex(index);
@@ -37,22 +40,24 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
         }
     };
 
-    useEffect(() => {
-        const fetchLatestPhotos = async () => {
-            try {
-                const response = await axios.get("/api/feed", {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setPhotos(response.data.photos || []);
-            } catch (err) {
-                console.error("Error fetching latest photos:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
+    const fetchPhotos = async (view: PhotoViewType) => {
+        setLoading(true);
+        try {
+            const endpoint = view === "random" ? "/api/feed" : "/api/feed/following";
+            const response = await axios.get(endpoint, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setPhotos(response.data.photos || []);
+        } catch (err) {
+            console.error("Error fetching photos:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        fetchLatestPhotos();
-    }, []);
+    useEffect(() => {
+        fetchPhotos(photoView);
+    }, [photoView]);
 
     useEffect(() => {
         fetchUserData();
@@ -70,6 +75,57 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
     return (
         <>
             <div className="home-blurred-card feed mb-4">
+
+                {/* Toggle Buttons */}
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="photo-view-toggle" style={{
+                        display: 'flex',
+                        gap: '0',
+                        marginTop: '20px',
+                        marginBottom: '20px',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '12px',
+                        padding: '4px',
+                        width: '100%',
+                        maxWidth: '400px'
+                    }}>
+                        <button
+                            onClick={() => setPhotoView("random")}
+                            style={{
+                                flex: 1,
+                                padding: '10px 20px',
+                                border: 'none',
+                                borderRadius: '10px',
+                                background: photoView === "random" ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
+                                color: 'white',
+                                fontWeight: photoView === "random" ? 600 : 400,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                fontSize: '0.9rem'
+                            }}
+                        >
+                            Random
+                        </button>
+                        <button
+                            onClick={() => setPhotoView("following")}
+                            style={{
+                                flex: 1,
+                                padding: '10px 20px',
+                                border: 'none',
+                                borderRadius: '10px',
+                                background: photoView === "following" ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
+                                color: 'white',
+                                fontWeight: photoView === "following" ? 600 : 400,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                fontSize: '0.9rem'
+                            }}
+                        >
+                            Following
+                        </button>
+                    </div>
+                </div>
+                
                 {/* Loading */}
                 {loading && <p>Loading...</p>}
 
