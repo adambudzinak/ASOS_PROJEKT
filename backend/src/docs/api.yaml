@@ -149,6 +149,71 @@ components:
         message:
           type: string
 
+    ReactionToggleResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            likesCount:
+              type: integer
+            isLiked:
+              type: boolean
+    ReactionUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        fname:
+          type: string
+        lname:
+          type: string
+        avatar:
+          type: string
+          nullable: true
+    ReactionItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reactionType:
+          type: string
+          enum: [like, heart, smile]
+        createdAt:
+          type: string
+          format: date-time
+        user:
+          $ref: "#/components/schemas/ReactionUser"
+    ReactionsResponse:
+      type: object
+      properties:
+        reactions:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            filename:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            likes:
+              type: array
+              items:
+                $ref: "#/components/schemas/ReactionItem"
+            likesCount:
+              type: integer
+            heartCount:
+              type: integer
+            smileCount:
+              type: integer
+
+
 paths:
   /sign-up:
     post:
@@ -348,6 +413,79 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Photo not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    /photo/{photoId}:
+    get:
+      summary: Get photo by ID
+      tags: [Photo]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: photoId
+          required: true
+          schema:
+            type: string
+          description: ID of the photo
+      responses:
+        "200":
+          description: Photo details returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  photo:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      filename:
+                        type: string
+                      url:
+                        type: string
+                        description: Public URL of the photo
+                      createdAt:
+                        type: string
+                        format: date-time
+                      user:
+                        $ref: "#/components/schemas/UserResponse"
+                      photoTags:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            tag:
+                              $ref: "#/components/schemas/TagResponse"
+                      comments:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            text:
+                              type: string
+                            createdAt:
+                              type: string
+                              format: date-time
+                            user:
+                              $ref: "#/components/schemas/UserResponse"
+                      likes:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            user:
+                              $ref: "#/components/schemas/UserResponse"
+                      likesCount:
+                        type: integer
+                        description: Total number of likes
         "404":
           description: Photo not found
           content:
@@ -688,3 +826,282 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  
+  /repost:
+    post:
+      summary: Repost a photo
+      tags: [Repost]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [photoId]
+              properties:
+                photoId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Photo reposted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  repost:
+                    type: object
+                    properties:
+                      userId:
+                        type: string
+                        format: uuid
+                      photoId:
+                        type: string
+                        format: uuid
+                      createdAt:
+                        type: string
+                        format: date-time
+                  isReposted:
+                    type: boolean
+        "400":
+          description: Invalid request or already reposted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Photo not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /unrepost:
+    post:
+      summary: Remove a repost
+      tags: [Repost]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [photoId]
+              properties:
+                photoId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Repost removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  isReposted:
+                    type: boolean
+        "400":
+          description: Photo was not reposted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+
+  /repost-status/{photoId}:
+    get:
+      summary: Check if the user reposted a photo
+      tags: [Repost]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: photoId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Repost status returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isReposted:
+                    type: boolean
+        "404":
+          description: Photo not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /reposts/{userId}:
+    get:
+      summary: Get all photos reposted by a user
+      tags: [Repost]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of reposted photos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repostedPhotos:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/PhotoResponse"
+                        - type: object
+                          properties:
+                            url:
+                              type: string
+                            repostedAt:
+                              type: string
+                              format: date-time
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /like/{photoId}:
+    post:
+      summary: Toggle LIKE reaction on a photo
+      tags: [Reactions]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: photoId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Like removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReactionToggleResponse"
+        "201":
+          description: Like added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReactionToggleResponse"
+        "400":
+          description: Missing or invalid photoId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /heart/{photoId}:
+    post:
+      summary: Toggle HEART reaction on a photo
+      tags: [Reactions]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: photoId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Heart removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReactionToggleResponse"
+        "201":
+          description: Heart added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReactionToggleResponse"
+        "400":
+          description: Missing or invalid photoId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /smile/{photoId}:
+    post:
+      summary: Toggle SMILE reaction on a photo
+      tags: [Reactions]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: photoId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Smile removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReactionToggleResponse"
+        "201":
+          description: Smile added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReactionToggleResponse"
+        "400":
+          description: Missing or invalid photoId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /reactions/{photoId}:
+    get:
+      summary: Get all reactions for a photo
+      tags: [Reactions]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: photoId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Reactions for the photo returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReactionsResponse"
+        "404":
+          description: Photo not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
