@@ -1,0 +1,39 @@
+.feed-item img {
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out;
+}
+
+.feed-item img:hover {
+    transform: scale(1.01);
+}
+
+.feed {
+    padding: 1rem;
+}
+
+.feed-date {
+    white-space: nowrap;
+    margin-left: 10px;
+}
+
+@media (max-width: 768px) {
+
+    .feed {
+        padding: 0;
+    }
+
+    .feed-item {
+        padding: 0 !important;
+    }
+
+    .feed-item img {
+        border-radius: 0px;
+    }
+
+    .user-info {
+        padding-left: 0.3rem;
+        padding-right: 0.3rem;
+    }
+
+}
