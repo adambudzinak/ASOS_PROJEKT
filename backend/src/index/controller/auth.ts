@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken'
-import * as bcrypt from 'bcrypt'
+import * as bcrypt from 'bcryptjs'
 import { AppError } from "../types/app-error";
 import { UserResponse } from '../payload/user-res';
 
