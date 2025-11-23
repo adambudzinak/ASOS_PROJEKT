@@ -5,17 +5,17 @@ Tímový projekt z predmetu I-ASOS
 
 1. **Build kontajnerov**
 ```bash
-docker-compose build
+docker compose build
 ```
 
 2. **Spustenie kontajnerov**
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 3. **Aplikovanie db migrácií**
 ```bash
-docker-compose exec backend npx prisma migrate deploy
+docker compose exec backend npx prisma migrate deploy
 ```
 
 Po týchto krokoch by mali byť spustené všetky služby:
