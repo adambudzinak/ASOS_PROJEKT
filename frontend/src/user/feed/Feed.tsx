@@ -5,6 +5,7 @@ import PhotoModal from "../../common/PhotoModal";
 import { createPortal } from "react-dom";
 import "./Feed.css"
 import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
+import { X, Search } from "lucide-react";
 
 interface FeedProps {
     token: string;
@@ -18,6 +19,12 @@ interface PaginationInfo {
     hasNextPage: boolean;
 }
 
+interface Tag {
+    id: string;
+    name: string;
+    photoCount: number;
+}
+
 type PhotoViewType = "random" | "following";
 
 const Feed: React.FC<FeedProps> = ({ token }) => {
@@ -28,6 +35,11 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
     const [photoModalOpen, setPhotoModalOpen] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [photoView, setPhotoView] = useState<PhotoViewType>("random");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [trendingTags, setTrendingTags] = useState<Tag[]>([]);
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
+    const [showTags, setShowTags] = useState(false);
+
     const [pagination, setPagination] = useState<PaginationInfo>({
         page: 0,
         limit: 10,
@@ -56,7 +68,17 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
         }
     };
 
-    // Fetchuj fotky za specificku stranku
+    const fetchTrendingTags = async () => {
+        try {
+            const response = await axios.get("/api/feed/trending-tags", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setTrendingTags(response.data.tags || []);
+        } catch (err: any) {
+            console.error("Failed to fetch trending tags:", err);
+        }
+    };
+
     const fetchPhotosPage = useCallback(async (pageNum: number) => {
         try {
             if (pageNum === 1) {
@@ -67,10 +89,15 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
 
             const endpoint = photoView === "random" ? "/api/feed" : "/api/feed/following";
 
-            console.log(`Fetching ${photoView} page ${pageNum}...`);
+            const searchParam = selectedTags.length > 0 ? selectedTags[0] : "";
+
+            console.log(`Fetching ${photoView} page ${pageNum} with search: "${searchParam}"...`);
 
             const response = await axios.get(endpoint, {
-                params: { page: pageNum },
+                params: {
+                    page: pageNum,
+                    search: searchParam
+                },
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -80,7 +107,6 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
             console.log("Pagination info:", newPagination);
             console.log("New photos count:", newPhotos.length);
 
-            // Ak je first page, replace, inak append
             if (pageNum === 1) {
                 setPhotos(newPhotos);
             } else {
@@ -94,9 +120,8 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
             setInitialLoading(false);
             setLoading(false);
         }
-    }, [photoView, token]);
+    }, [photoView, token, selectedTags]);
 
-    // Ked sa zmeni photoView, reset a fetchuj stranku 1
     useEffect(() => {
         console.log("Photo view changed to:", photoView);
         setPhotos([]);
@@ -110,25 +135,41 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
         fetchPhotosPage(1);
     }, [photoView, fetchPhotosPage]);
 
-    // Initial load
+    useEffect(() => {
+        console.log("Selected tags changed:", selectedTags);
+        setPhotos([]);
+        setPagination({
+            page: 0,
+            limit: 10,
+            total: 0,
+            totalPages: 0,
+            hasNextPage: false
+        });
+        fetchPhotosPage(1);
+    }, [selectedTags, fetchPhotosPage]);
+
     useEffect(() => {
         fetchUserData();
+        fetchTrendingTags();
     }, [token]);
 
-    // Load more handler - volany ked user scrolluje dol
     const handleLoadMore = useCallback(() => {
         console.log("Loading more... Current page:", pagination.page);
         const nextPage = pagination.page + 1;
         fetchPhotosPage(nextPage);
     }, [pagination.page, fetchPhotosPage]);
 
-    // Infinite scroll observer
     const observerTarget = useInfiniteScroll({
         onLoadMore: handleLoadMore,
         hasNextPage: pagination.hasNextPage,
         isLoading: loading,
         threshold: 500
     });
+
+    const clearSearch = () => {
+        setSelectedTags([]);
+        setShowTags(false);
+    };
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString("sk-SK", {
@@ -141,6 +182,124 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
     return (
         <>
             <div className="home-blurred-card feed mb-4">
+
+                {/* Search Bar */}
+                <div style={{ padding: "15px 20px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+                    <div style={{ position: "relative" }}>
+                        <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            background: "rgba(255, 255, 255, 0.05)",
+                            borderRadius: "20px",
+                            padding: "8px 15px",
+                            border: "1px solid rgba(255, 255, 255, 0.1)"
+                        }}>
+                            <Search size={18} color="rgba(255,255,255,0.6)" />
+                            <input
+                                type="text"
+                                placeholder="Search by tags (e.g. travel, sunset)..."
+                                value={selectedTags.join("")}
+                                onChange={(e) => {
+                                    const value = e.target.value.toLowerCase().trim();
+                                    if (value === "") {
+                                        setSelectedTags([]);
+                                    } else {
+                                        setSelectedTags([value]);
+                                    }
+                                }}
+                                onFocus={() => setShowTags(true)}
+                                style={{
+                                    background: "transparent",
+                                    border: "none",
+                                    color: "white",
+                                    outline: "none",
+                                    width: "100%",
+                                    fontSize: "0.95rem"
+                                }}
+                            />
+                            {selectedTags.length > 0 && (
+                                <button
+                                    onClick={() => {
+                                        clearSearch();
+                                    }}
+                                    style={{
+                                        background: "none",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        color: "rgba(255,255,255,0.7)",
+                                        padding: "0 5px",
+                                        display: "flex",
+                                        alignItems: "center"
+                                    }}
+                                >
+                                    <X size={16} />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Tags Suggestions Dropdown */}
+                        {showTags && (
+                            <div style={{
+                                position: "absolute",
+                                top: "100%",
+                                left: "0",
+                                right: "0",
+                                background: "rgba(0, 0, 0, 0.9)",
+                                border: "1px solid rgba(255, 255, 255, 0.1)",
+                                borderRadius: "12px",
+                                marginTop: "8px",
+                                zIndex: 1000,
+                                maxHeight: "300px",
+                                overflowY: "auto",
+                                padding: "10px"
+                            }}>
+                                <p style={{ color: "rgba(255,255,255,0.6)", padding: "10px", margin: "0", fontSize: "0.85rem" }}>
+                                    Trending tags:
+                                </p>
+                                {trendingTags.length === 0 ? (
+                                    <p style={{ color: "rgba(255,255,255,0.5)", padding: "10px", textAlign: "center", margin: "0" }}>
+                                        No tags available
+                                    </p>
+                                ) : (
+                                    trendingTags.slice(0, 10).map(tag => (
+                                        <div
+                                            key={tag.id}
+                                            onClick={() => {
+                                                setSelectedTags([tag.name]);
+                                                setShowTags(false);
+                                            }}
+                                            style={{
+                                                padding: "10px 12px",
+                                                margin: "5px 0",
+                                                borderRadius: "8px",
+                                                background: "rgba(255, 255, 255, 0.05)",
+                                                border: "1px solid transparent",
+                                                cursor: "pointer",
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                transition: "all 0.2s",
+                                                color: "white"
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                                            }}
+                                        >
+                                            <span>#{tag.name}</span>
+                                            <span style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.5)" }}>
+                                                {tag.photoCount}
+                                            </span>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
 
                 {/* Toggle Buttons */}
                 <div style={{ display: "flex", justifyContent: "center" }}>
@@ -201,7 +360,11 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
 
                 {/* No photos */}
                 {!initialLoading && photos.length === 0 && (
-                    <p className="text-center">No photos available</p>
+                    <p className="text-center" style={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                        {selectedTags.length > 0
+                            ? `No photos found with tag "${selectedTags[0]}"`
+                            : "No photos available"}
+                    </p>
                 )}
 
                 <div className="container">
@@ -292,5 +455,6 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
         </>
     );
 };
+
 
 export default Feed;

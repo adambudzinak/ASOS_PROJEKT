@@ -28,7 +28,7 @@ import {
     checkRepostStatus,
     getRepostedPhotos
 } from "./controller/repost";
-import { getFeed, getFollowingFeed } from "./controller/feed";
+import { getFeed, getFollowingFeed, getTrendingTags } from "./controller/feed";
 
 import { getPhotoById } from "./controller/photo";
 
@@ -67,6 +67,7 @@ router.post("/heart/:photoId", heart);
 router.post("/smile/:photoId", smile);
 router.get("/reactions/:photoId", getReactions)
 
+router.get("/feed/trending-tags", getTrendingTags);
 router.get("/feed", getFeed);
 router.get("/feed/following", getFollowingFeed);
 

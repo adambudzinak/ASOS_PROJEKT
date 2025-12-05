@@ -20,10 +20,8 @@ export const useInfiniteScroll = ({
         (entries: IntersectionObserverEntry[]) => {
             const entry = entries[0];
 
-            // Ak je element viditelny a mame dalsie stranky a neni loading
             if (entry.isIntersecting && hasNextPage && !isLoading) {
                 const now = Date.now();
-                // Zabran viacerym callsom - minimalne 1 sekunda medzi requestami
                 if (now - lastCallTime.current > 1000) {
                     lastCallTime.current = now;
                     onLoadMore();
