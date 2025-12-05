@@ -47,7 +47,7 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
         hasNextPage: false
     });
 
-    const [timeRange, setTimeRange] = useState<"1d" | "7d" | "30d" | "all">("all");
+    const [timeRange, setTimeRange] = useState<"1d" | "7d" | "30d" | "all" | "1y">("all");
     const searchInputRef = useRef<HTMLDivElement>(null);
 
     const openPhotoModal = (index: number) => {
@@ -73,6 +73,7 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
     const fetchTrendingTags = async () => {
         try {
             const response = await axios.get("/api/feed/trending-tags", {
+                params: { timeRange },
                 headers: { Authorization: `Bearer ${token}` }
             });
             setTrendingTags(response.data.tags || []);
