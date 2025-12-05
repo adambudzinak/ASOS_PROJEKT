@@ -1,12 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import "../home-screen/HomeScreen.css";
 import axios from "../../auth/CrossOrigin";
 import PhotoModal from "../../common/PhotoModal";
 import { createPortal } from "react-dom";
 import "./Feed.css"
+import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
 
 interface FeedProps {
     token: string;
+}
+
+interface PaginationInfo {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
 }
 
 type PhotoViewType = "random" | "following";
@@ -14,10 +23,18 @@ type PhotoViewType = "random" | "following";
 const Feed: React.FC<FeedProps> = ({ token }) => {
     const [photos, setPhotos] = useState<any[]>([]);
     const [userId, setUserId] = useState("");
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true);
     const [photoModalOpen, setPhotoModalOpen] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [photoView, setPhotoView] = useState<PhotoViewType>("random");
+    const [pagination, setPagination] = useState<PaginationInfo>({
+        page: 0,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false
+    });
 
     const openPhotoModal = (index: number) => {
         setCurrentPhotoIndex(index);
@@ -33,35 +50,85 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
             const response = await axios.get("/api/get-user", {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            const user = response.data;
-            setUserId(user.id);
+            setUserId(response.data.id);
         } catch (err: any) {
-            console.error(err);
+            console.error("Failed to fetch user data:", err);
         }
     };
 
-    const fetchPhotos = async (view: PhotoViewType) => {
-        setLoading(true);
+    // Fetchuj fotky za specificku stranku
+    const fetchPhotosPage = useCallback(async (pageNum: number) => {
         try {
-            const endpoint = view === "random" ? "/api/feed" : "/api/feed/following";
+            if (pageNum === 1) {
+                setInitialLoading(true);
+            } else {
+                setLoading(true);
+            }
+
+            const endpoint = photoView === "random" ? "/api/feed" : "/api/feed/following";
+
+            console.log(`Fetching ${photoView} page ${pageNum}...`);
+
             const response = await axios.get(endpoint, {
+                params: { page: pageNum },
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setPhotos(response.data.photos || []);
+
+            const newPhotos = response.data.photos || [];
+            const newPagination = response.data.pagination;
+
+            console.log("Pagination info:", newPagination);
+            console.log("New photos count:", newPhotos.length);
+
+            // Ak je first page, replace, inak append
+            if (pageNum === 1) {
+                setPhotos(newPhotos);
+            } else {
+                setPhotos(prev => [...prev, ...newPhotos]);
+            }
+
+            setPagination(newPagination);
         } catch (err) {
             console.error("Error fetching photos:", err);
         } finally {
+            setInitialLoading(false);
             setLoading(false);
         }
-    };
+    }, [photoView, token]);
 
+    // Ked sa zmeni photoView, reset a fetchuj stranku 1
     useEffect(() => {
-        fetchPhotos(photoView);
-    }, [photoView]);
+        console.log("Photo view changed to:", photoView);
+        setPhotos([]);
+        setPagination({
+            page: 0,
+            limit: 10,
+            total: 0,
+            totalPages: 0,
+            hasNextPage: false
+        });
+        fetchPhotosPage(1);
+    }, [photoView, fetchPhotosPage]);
 
+    // Initial load
     useEffect(() => {
         fetchUserData();
     }, [token]);
+
+    // Load more handler - volany ked user scrolluje dol
+    const handleLoadMore = useCallback(() => {
+        console.log("Loading more... Current page:", pagination.page);
+        const nextPage = pagination.page + 1;
+        fetchPhotosPage(nextPage);
+    }, [pagination.page, fetchPhotosPage]);
+
+    // Infinite scroll observer
+    const observerTarget = useInfiniteScroll({
+        onLoadMore: handleLoadMore,
+        hasNextPage: pagination.hasNextPage,
+        isLoading: loading,
+        threshold: 500
+    });
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString("sk-SK", {
@@ -70,7 +137,6 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
             day: "2-digit",
         });
     };
-
 
     return (
         <>
@@ -91,6 +157,7 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
                     }}>
                         <button
                             onClick={() => setPhotoView("random")}
+                            disabled={initialLoading}
                             style={{
                                 flex: 1,
                                 padding: '10px 20px',
@@ -99,15 +166,17 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
                                 background: photoView === "random" ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
                                 color: 'white',
                                 fontWeight: photoView === "random" ? 600 : 400,
-                                cursor: 'pointer',
+                                cursor: initialLoading ? 'not-allowed' : 'pointer',
                                 transition: 'all 0.2s ease',
-                                fontSize: '0.9rem'
+                                fontSize: '0.9rem',
+                                opacity: initialLoading ? 0.6 : 1
                             }}
                         >
                             Random
                         </button>
                         <button
                             onClick={() => setPhotoView("following")}
+                            disabled={initialLoading}
                             style={{
                                 flex: 1,
                                 padding: '10px 20px',
@@ -116,21 +185,22 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
                                 background: photoView === "following" ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
                                 color: 'white',
                                 fontWeight: photoView === "following" ? 600 : 400,
-                                cursor: 'pointer',
+                                cursor: initialLoading ? 'not-allowed' : 'pointer',
                                 transition: 'all 0.2s ease',
-                                fontSize: '0.9rem'
+                                fontSize: '0.9rem',
+                                opacity: initialLoading ? 0.6 : 1
                             }}
                         >
                             Following
                         </button>
                     </div>
                 </div>
-                
-                {/* Loading */}
-                {loading && <p>Loading...</p>}
+
+                {/* Loading - First Load */}
+                {initialLoading && <p className="text-center">Loading...</p>}
 
                 {/* No photos */}
-                {!loading && photos.length === 0 && (
+                {!initialLoading && photos.length === 0 && (
                     <p className="text-center">No photos available</p>
                 )}
 
@@ -182,7 +252,31 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
                         ))}
                     </div>
                 </div>
+
+                {/* Loading - Load More */}
+                {loading && (
+                    <div style={{ textAlign: "center", padding: "20px" }}>
+                        <p>Loading more photos...</p>
+                    </div>
+                )}
+
+                {/* Infinite Scroll Observer Target */}
+                {pagination.hasNextPage && !loading && (
+                    <div
+                        ref={observerTarget}
+                        style={{ height: "1px", visibility: "hidden" }}
+                        aria-hidden="true"
+                    />
+                )}
+
+                {/* End of content message */}
+                {!loading && !pagination.hasNextPage && photos.length > 0 && (
+                    <div style={{ textAlign: "center", padding: "20px", color: "rgba(255, 255, 255, 0.5)" }}>
+                        <p>No more photos to load</p>
+                    </div>
+                )}
             </div>
+
             {photoModalOpen &&
                 createPortal(
                     <PhotoModal
