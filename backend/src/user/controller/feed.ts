@@ -115,7 +115,6 @@ export async function getFeed(req: AuthenticatedRequest, res: Response, next: Ne
     }
 }
 
-
 export const getFollowingFeed: RequestHandler = async (req, res, next) => {
     try {
         const userId = (req as AuthenticatedRequest).user!.id;
@@ -186,10 +185,52 @@ export const getFollowingFeed: RequestHandler = async (req, res, next) => {
 
 export async function getTrendingTags(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
+        const timeRange = (req.query.timeRange as string) || "all";
+
+        const now = new Date();
+        let fromDate = new Date(0);
+
+        switch (timeRange) {
+            case "1d":
+                fromDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                break;
+            case "7d":
+                fromDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                break;
+            case "30d":
+                fromDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                break;
+            case "1y":
+                fromDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+                break;
+            case "all":
+            default:
+                fromDate = new Date(0);
+        }
+
         const tags = await prisma.tag.findMany({
             include: {
+                photos: {
+                    where: {
+                        photo: {
+                            createdAt: {
+                                gte: fromDate
+                            }
+                        }
+                    }
+                },
                 _count: {
-                    select: { photos: true }
+                    select: {
+                        photos: {
+                            where: {
+                                photo: {
+                                    createdAt: {
+                                        gte: fromDate
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             },
             orderBy: {

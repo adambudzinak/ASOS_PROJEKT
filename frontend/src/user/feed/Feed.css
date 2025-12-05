@@ -17,6 +17,10 @@
     margin-left: 10px;
 }
 
+.feed-search-input::placeholder {
+    color: #ffffff;
+}
+
 @media (max-width: 768px) {
 
     .feed {

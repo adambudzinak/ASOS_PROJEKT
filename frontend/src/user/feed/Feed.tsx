@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, {useEffect, useState, useCallback, useRef} from "react";
 import "../home-screen/HomeScreen.css";
 import axios from "../../auth/CrossOrigin";
 import PhotoModal from "../../common/PhotoModal";
@@ -35,7 +35,6 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
     const [photoModalOpen, setPhotoModalOpen] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [photoView, setPhotoView] = useState<PhotoViewType>("random");
-    const [searchQuery, setSearchQuery] = useState("");
     const [trendingTags, setTrendingTags] = useState<Tag[]>([]);
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [showTags, setShowTags] = useState(false);
@@ -47,6 +46,9 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
         totalPages: 0,
         hasNextPage: false
     });
+
+    const [timeRange, setTimeRange] = useState<"1d" | "7d" | "30d" | "all">("all");
+    const searchInputRef = useRef<HTMLDivElement>(null);
 
     const openPhotoModal = (index: number) => {
         setCurrentPhotoIndex(index);
@@ -150,8 +152,29 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
 
     useEffect(() => {
         fetchUserData();
-        fetchTrendingTags();
     }, [token]);
+
+    useEffect(() => {
+        if (showTags) {
+            fetchTrendingTags();
+        }
+    }, [timeRange, showTags]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
+                setShowTags(false);
+            }
+        };
+
+        if (showTags) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showTags]);
 
     const handleLoadMore = useCallback(() => {
         console.log("Loading more... Current page:", pagination.page);
@@ -185,7 +208,7 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
 
                 {/* Search Bar */}
                 <div style={{ padding: "15px 20px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-                    <div style={{ position: "relative" }}>
+                    <div style={{ position: "relative" }} ref={searchInputRef}>
                         <div style={{
                             display: "flex",
                             alignItems: "center",
@@ -198,7 +221,8 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
                             <Search size={18} color="rgba(255,255,255,0.6)" />
                             <input
                                 type="text"
-                                placeholder="Search by tags (e.g. travel, sunset)..."
+                                className="feed-search-input"
+                                placeholder="Search by tags"
                                 value={selectedTags.join("")}
                                 onChange={(e) => {
                                     const value = e.target.value.toLowerCase().trim();
@@ -250,11 +274,152 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
                                 borderRadius: "12px",
                                 marginTop: "8px",
                                 zIndex: 1000,
-                                maxHeight: "300px",
+                                maxHeight: "400px",
                                 overflowY: "auto",
                                 padding: "10px"
                             }}>
-                                <p style={{ color: "rgba(255,255,255,0.6)", padding: "10px", margin: "0", fontSize: "0.85rem" }}>
+                                {/* Time Range Buttons */}
+                                <div style={{
+                                    display: "flex",
+                                    gap: "8px",
+                                    marginBottom: "10px",
+                                    padding: "0 5px"
+                                }}>
+                                    <button
+                                        onClick={() => setTimeRange("1d")}
+                                        style={{
+                                            padding: "6px 12px",
+                                            borderRadius: "6px",
+                                            border: "1px solid rgba(255,255,255,0.2)",
+                                            background: timeRange === "1d" ? "rgba(100, 200, 255, 0.3)" : "transparent",
+                                            color: timeRange === "1d" ? "rgba(100, 200, 255, 1)" : "rgba(255,255,255,0.7)",
+                                            cursor: "pointer",
+                                            fontSize: "0.8rem",
+                                            fontWeight: timeRange === "1d" ? 600 : 400,
+                                            transition: "all 0.2s"
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (timeRange !== "1d") {
+                                                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (timeRange !== "1d") {
+                                                e.currentTarget.style.background = "transparent";
+                                            }
+                                        }}
+                                    >
+                                        1 day
+                                    </button>
+                                    <button
+                                        onClick={() => setTimeRange("7d")}
+                                        style={{
+                                            padding: "6px 12px",
+                                            borderRadius: "6px",
+                                            border: "1px solid rgba(255,255,255,0.2)",
+                                            background: timeRange === "7d" ? "rgba(100, 200, 255, 0.3)" : "transparent",
+                                            color: timeRange === "7d" ? "rgba(100, 200, 255, 1)" : "rgba(255,255,255,0.7)",
+                                            cursor: "pointer",
+                                            fontSize: "0.8rem",
+                                            fontWeight: timeRange === "7d" ? 600 : 400,
+                                            transition: "all 0.2s"
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (timeRange !== "7d") {
+                                                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (timeRange !== "7d") {
+                                                e.currentTarget.style.background = "transparent";
+                                            }
+                                        }}
+                                    >
+                                        7 days
+                                    </button>
+                                    <button
+                                        onClick={() => setTimeRange("30d")}
+                                        style={{
+                                            padding: "6px 12px",
+                                            borderRadius: "6px",
+                                            border: "1px solid rgba(255,255,255,0.2)",
+                                            background: timeRange === "30d" ? "rgba(100, 200, 255, 0.3)" : "transparent",
+                                            color: timeRange === "30d" ? "rgba(100, 200, 255, 1)" : "rgba(255,255,255,0.7)",
+                                            cursor: "pointer",
+                                            fontSize: "0.8rem",
+                                            fontWeight: timeRange === "30d" ? 600 : 400,
+                                            transition: "all 0.2s"
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (timeRange !== "30d") {
+                                                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (timeRange !== "30d") {
+                                                e.currentTarget.style.background = "transparent";
+                                            }
+                                        }}
+                                    >
+                                        1 month
+                                    </button>
+                                    <button
+                                        onClick={() => setTimeRange("1y")}
+                                        style={{
+                                            padding: "6px 12px",
+                                            borderRadius: "6px",
+                                            border: "1px solid rgba(255,255,255,0.2)",
+                                            background: timeRange === "1y" ? "rgba(100, 200, 255, 0.3)" : "transparent",
+                                            color: timeRange === "1y" ? "rgba(100, 200, 255, 1)" : "rgba(255,255,255,0.7)",
+                                            cursor: "pointer",
+                                            fontSize: "0.8rem",
+                                            fontWeight: timeRange === "1y" ? 600 : 400,
+                                            transition: "all 0.2s"
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (timeRange !== "1y") {
+                                                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (timeRange !== "1y") {
+                                                e.currentTarget.style.background = "transparent";
+                                            }
+                                        }}
+                                    >
+                                        1 year
+                                    </button>
+                                    <button
+                                        onClick={() => setTimeRange("all")}
+                                        style={{
+                                            padding: "6px 12px",
+                                            borderRadius: "6px",
+                                            border: "1px solid rgba(255,255,255,0.2)",
+                                            background: timeRange === "all" ? "rgba(100, 200, 255, 0.3)" : "transparent",
+                                            color: timeRange === "all" ? "rgba(100, 200, 255, 1)" : "rgba(255,255,255,0.7)",
+                                            cursor: "pointer",
+                                            fontSize: "0.8rem",
+                                            fontWeight: timeRange === "all" ? 600 : 400,
+                                            transition: "all 0.2s"
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (timeRange !== "all") {
+                                                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (timeRange !== "all") {
+                                                e.currentTarget.style.background = "transparent";
+                                            }
+                                        }}
+                                    >
+                                        All time
+                                    </button>
+                                </div>
+
+                                <hr style={{ borderColor: "rgba(255,255,255,0.1)", margin: "8px 0" }} />
+
+                                <p style={{ color: "rgba(255,255,255,0.6)", padding: "10px 5px", margin: "0", fontSize: "0.85rem" }}>
                                     Trending tags:
                                 </p>
                                 {trendingTags.length === 0 ? (
@@ -455,6 +620,5 @@ const Feed: React.FC<FeedProps> = ({ token }) => {
         </>
     );
 };
-
 
 export default Feed;
