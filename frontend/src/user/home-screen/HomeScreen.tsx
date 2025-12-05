@@ -33,7 +33,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ token, onLogout }) => {
     const renderContent = () => {
         switch (activeTab) {
             case "Feed":
-                return <Feed message={message} />;
+                return <Feed token={token} />;
             case "Profile":
                 return <Profile token={token}/>;
             case "People":
@@ -42,7 +42,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ token, onLogout }) => {
                 onLogout();
                 return
             default:
-                return <Feed message={message} />;
+                return <Feed token={token} />;
         }
     };
 
